@@ -2,7 +2,9 @@ package ramble;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteSource;
+import com.google.common.io.Files;
 import com.google.common.io.Resources;
 import org.raml.v2.api.RamlModelBuilder;
 import org.raml.v2.api.RamlModelResult;
@@ -18,12 +20,18 @@ import org.slf4j.LoggerFactory;
 import ratpack.file.MimeTypes;
 import ratpack.guice.Guice;
 import ratpack.handlebars.HandlebarsModule;
+import ratpack.handling.Chain;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 import ratpack.http.Request;
+import ratpack.path.PathBinding;
 import ratpack.server.RatpackServer;
 
+import java.io.File;
 import java.net.URL;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -71,18 +79,23 @@ class ResourcesHandler implements Handler {
 class ApiConsoleHandler implements Handler {
     private final static String apiConsoleBase = "META-INF/resources/webjars/api-console/3.0.4/dist";
 
+    private final Path fileName;
+
+    public ApiConsoleHandler(final Path fileName) {
+        this.fileName = fileName;
+    }
+
     @Override
     public void handle(final Context ctx) throws Exception {
-        final String path = ctx.getRequest().getPath();
+        final PathBinding pathBinding = ctx.getPathBinding();
 
-        if (path.equals("api-console/")) {
-            ctx.render(handlebarsTemplate("index.html"));
+        final String path = pathBinding.getPastBinding();
+
+        if (path.isEmpty() || path.equals("index.html")) {
+            ctx.render(handlebarsTemplate(ImmutableMap.of("fileName", fileName), "index.html"));
         }
-        else if (path.startsWith("api-console/")) {
-            final String relativePath = path.substring("api-console/".length());
-            final String apiConsoleResourcePath = relativePath.isEmpty() ?
-                    Joiner.on("/").join(apiConsoleBase, "index.html") :
-                    Joiner.on("/").join(apiConsoleBase, relativePath);
+        else  {
+            final String apiConsoleResourcePath = Joiner.on("/").join(apiConsoleBase, path);
 
             final URL resource = Resources.getResource(apiConsoleResourcePath);
             if (resource == null) {
@@ -91,8 +104,29 @@ class ApiConsoleHandler implements Handler {
                 final ByteSource byteSource = Resources.asByteSource(resource);
                 final String content = byteSource.asCharSource(Charsets.UTF_8).read();
 
-                ctx.getResponse().send(ctx.get(MimeTypes.class).getContentType(apiConsoleResourcePath), content);
+                final String contentType = ctx.get(MimeTypes.class).getContentType(apiConsoleResourcePath);
+                ctx.getResponse().send(contentType, content);
             }
+        }
+    }
+}
+
+class RamlFilesHandler implements Handler {
+    private final Path baseDir;
+
+    public RamlFilesHandler(final Path baseDir) {
+        this.baseDir = baseDir;
+    }
+
+    @Override
+    public void handle(final Context ctx) throws Exception {
+        final String path = ctx.getPathBinding().getPastBinding();
+
+        final Path resolvedFilePath = baseDir.resolve(path);
+        final File file = resolvedFilePath.toFile();
+        if (file.getName().endsWith(".raml") && file.exists()) {
+            final String content = Files.asByteSource(file).asCharSource(Charsets.UTF_8).read();
+            ctx.getResponse().send("text/plain", content);
         } else {
             ctx.next();
         }
@@ -103,7 +137,11 @@ public class RambleApp {
     private static Logger LOG = LoggerFactory.getLogger(RambleApp.class);
 
     public static void main(String[] args) throws Exception {
-        final RamlModelResult ramlModelResult = new RamlModelBuilder().buildApi("./Example.raml");
+        final FileSystem fileSystem = FileSystems.getDefault();
+        final Path ramlFile = fileSystem.getPath("Example.raml").toAbsolutePath();
+        final Path baseRamlDir = ramlFile.getParent();
+
+        final RamlModelResult ramlModelResult = new RamlModelBuilder().buildApi(ramlFile.toFile());
         if (ramlModelResult.hasErrors()) {
             for (ValidationResult validationResult : ramlModelResult.getValidationResults()) {
                 LOG.error(validationResult.getMessage());
@@ -114,8 +152,9 @@ public class RambleApp {
             RatpackServer.start(server -> server
                     .serverConfig(c -> c.findBaseDir())
                     .registry(Guice.registry(b -> b.module(HandlebarsModule.class)))
-                    .handlers(chain -> chain.all(new ApiConsoleHandler()).all(new ResourcesHandler(api)))
-            );
+                    .handlers(chain -> chain.prefix("api-console", chain1 -> chain1.all(new ApiConsoleHandler(ramlFile.getFileName())))
+                                            .prefix("api", chain1 -> chain1.all(new ResourcesHandler(api)))
+                                            .prefix("raml", chain1 -> chain1.all(new RamlFilesHandler(baseRamlDir)))));
         }
 
     }
