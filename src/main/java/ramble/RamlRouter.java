@@ -70,12 +70,11 @@ class RamlRouter implements Action<Chain> {
             final Request request = ctx.getRequest();
             final String method = request.getMethod().getName().toLowerCase();
             final String path = request.getPath();
-            LOG.error("Request path: {}", path);
+            LOG.debug("Request path: {}", path);
 
-            final Set<String> methods = resource.methods().stream().map(Method::method).collect(Collectors.toSet());
-            if (resource != null && methods.contains(method)) {
-                final Method ramlMethod = resource.methods().stream().filter(m -> m.method().equals(method)).findFirst().get();
-                Optional<Response> response = ramlMethod.responses().stream().findFirst();
+            final Optional<Method> ramlMethod = resource.methods().stream().filter(m -> m.method().equals(method)).findFirst();
+            if (ramlMethod.isPresent()) {
+                Optional<Response> response = ramlMethod.get().responses().stream().findFirst();
                 Optional<ExampleSpec> example = response.flatMap(r -> r.body().stream().findFirst()).map(TypeDeclaration::example);
 
                 if (example.isPresent()) {
@@ -84,7 +83,6 @@ class RamlRouter implements Action<Chain> {
                     ctx.getResponse().send("No example found.");
                 }
             } else {
-                LOG.error("Resource for {} {} not found.", method, path);
                 ctx.next();
             }
         }
