@@ -46,7 +46,7 @@ public class RambleApp {
                     .registry(Guice.registry(b -> b.module(HandlebarsModule.class)))
                     .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate(ImmutableMap.of("fileName", fileName), "index.html")))
                                             .prefix("api-console", chain1 -> chain1.all(new ApiConsoleHandler(fileName)))
-                                            .prefix("api", chain1 -> chain1.all(new ResourcesHandler(api)))
+                                            .prefix("api", new RamlRouter(api))
                                             .prefix("raml", chain1 -> chain1.all(new RamlFilesHandler(baseRamlDir)))));
         }
 
