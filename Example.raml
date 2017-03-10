@@ -1,0 +1,30 @@
+#%RAML 1.0
+
+title: Example
+
+/example:
+    get:
+        queryParameters:
+            name:
+                string
+        responses:
+            200:
+                body:
+                    application/json:
+                        example: |
+                            "songs": [
+                                {
+                                    "songId": "550e8400-e29b-41d4-a716-446655440000",
+                                    "songTitle": "Get Lucky"
+                                }
+                            ]
+
+/example1:
+    post:
+        queryParameters:
+            name:
+                string
+        responses:
+            200:
+                body:
+                    application/json:
