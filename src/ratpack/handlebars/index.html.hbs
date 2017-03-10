@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>API Console</title>
-    <link href="styles/api-console-light-theme.css" rel="stylesheet" class="theme">
+    <title>Ramble</title>
 </head>
-<body ng-app="ramlConsoleApp" ng-cloak class="raml-console-body">
-<raml-console-loader src="/raml/{{fileName}}"></raml-console-loader>
-<script src="scripts/api-console-vendor.js"></script>
-<script src="scripts/api-console.js"></script>
-<script>
-    $.noConflict();
-  </script>
+<body>
+<h1>Welcome to Ramble!</h1>
+
+<ul>
+    <li><a href="raml/{{fileName}}">{{fileName}}</a></li>
+    <li><a href="api-console/">API Console</a></li>
+</ul>
+
 </body>
 </html>
