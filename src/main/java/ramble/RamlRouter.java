@@ -1,9 +1,7 @@
 package ramble;
 
+import com.google.common.base.Joiner;
 import org.raml.v2.api.model.v10.api.Api;
-import org.raml.v2.api.model.v10.bodies.Response;
-import org.raml.v2.api.model.v10.datamodel.ExampleSpec;
-import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.resources.Resource;
 import org.slf4j.Logger;
@@ -13,15 +11,14 @@ import ratpack.handling.Chain;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 import ratpack.http.Request;
+import ratpack.http.client.HttpClient;
+import ratpack.http.client.ReceivedResponse;
+import ratpack.http.client.RequestSpec;
 
+import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * This class routes request for raml resource to a raml route.
@@ -49,7 +46,7 @@ class RamlRouter implements Action<Chain> {
             final String ramlPath = resource.resourcePath().substring(1); // remove leading "/"
             final String ratpackPath = Pattern.compile("\\{(.*)\\}").matcher(ramlPath).replaceAll(":$1");
 
-            chain.path(ratpackPath, new Route(resource));
+            chain.path(ratpackPath, new Route(api, resource));
 
             createRoutes(chain, api, resource.resources());
         }
@@ -59,9 +56,11 @@ class RamlRouter implements Action<Chain> {
     static class Route implements Handler {
         private final static Logger LOG = LoggerFactory.getLogger(Route.class);
 
+        private final Api api;
         private final Resource resource;
 
-        public Route(final Resource resource) {
+        public Route(final Api api, final Resource resource) {
+            this.api = api;
             this.resource = resource;
         }
 
@@ -74,17 +73,32 @@ class RamlRouter implements Action<Chain> {
 
             final Optional<Method> ramlMethod = resource.methods().stream().filter(m -> m.method().equals(method)).findFirst();
             if (ramlMethod.isPresent()) {
-                Optional<Response> response = ramlMethod.get().responses().stream().findFirst();
-                Optional<ExampleSpec> example = response.flatMap(r -> r.body().stream().findFirst()).map(TypeDeclaration::example);
-
-                if (example.isPresent()) {
-                    ctx.render(example.get().value());
-                } else {
-                    ctx.getResponse().send("No example found.");
-                }
+                final URI uri = proxiedUri(ctx);
+                final HttpClient httpClient = ctx.get(HttpClient.class);
+                httpClient.request(uri, toRequestSpec(request)).then(sendResponse(ctx));
             } else {
                 ctx.next();
             }
+        }
+
+        private URI proxiedUri(final Context ctx) {
+            final String boundPath = ctx.getPathBinding().getBoundTo() + ctx.getRequest().getQuery();
+            final String baseUri = api.baseUri().value();
+            final String uriStr = baseUri.endsWith("/") ?
+                    baseUri + boundPath :
+                    Joiner.on("/").join(baseUri, boundPath);
+            return URI.create(uriStr);
+        }
+
+        private Action<ReceivedResponse> sendResponse(final Context ctx) {
+            return response -> ctx.getResponse().send(response.getBody().getBuffer());
+        }
+
+        private Action<RequestSpec> toRequestSpec(final Request request) {
+            return r -> {
+                r.getHeaders().copy(request.getHeaders());
+                r.method(request.getMethod());
+            };
         }
     }
 }
