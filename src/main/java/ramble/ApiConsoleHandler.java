@@ -5,6 +5,8 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteSource;
 import com.google.common.io.Resources;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ratpack.file.MimeTypes;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
@@ -19,6 +21,7 @@ import static ratpack.handlebars.Template.handlebarsTemplate;
  * Handler for the api-console integration.
  */
 class ApiConsoleHandler implements Handler {
+    private final static Logger LOG = LoggerFactory.getLogger(ApiConsoleHandler.class);
     private final static String apiConsoleBase = "META-INF/resources/webjars/api-console/3.0.4/dist";
 
     private final Path fileName;
@@ -39,15 +42,15 @@ class ApiConsoleHandler implements Handler {
         else  {
             final String apiConsoleResourcePath = Joiner.on("/").join(apiConsoleBase, path);
 
-            final URL resource = Resources.getResource(apiConsoleResourcePath);
-            if (resource == null) {
-                ctx.next();
-            } else {
+            try {
+                final URL resource = Resources.getResource(apiConsoleResourcePath);
                 final ByteSource byteSource = Resources.asByteSource(resource);
                 final String content = byteSource.asCharSource(Charsets.UTF_8).read();
 
                 final String contentType = ctx.get(MimeTypes.class).getContentType(apiConsoleResourcePath);
                 ctx.getResponse().send(contentType, content);
+            } catch (IllegalArgumentException e) {
+                LOG.error("Resource {} not found at {}", path, apiConsoleResourcePath);
             }
         }
     }

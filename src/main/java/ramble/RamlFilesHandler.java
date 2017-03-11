@@ -22,13 +22,11 @@ class RamlFilesHandler implements Handler {
     public void handle(final Context ctx) throws Exception {
         final String path = ctx.getPathBinding().getPastBinding();
 
-        final Path resolvedFilePath = baseDir.resolve(path);
+        final Path resolvedFilePath = baseDir.resolve(path).normalize();
         final File file = resolvedFilePath.toFile();
-        if (file.getName().endsWith(".raml") && file.exists()) {
+        if (file.exists()) {
             final String content = Files.asByteSource(file).asCharSource(Charsets.UTF_8).read();
             ctx.getResponse().send("text/plain", content);
-        } else {
-            ctx.next();
         }
     }
 }

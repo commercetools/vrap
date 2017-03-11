@@ -36,7 +36,7 @@ public class RambleApp {
         final RamlModelResult ramlModelResult = new RamlModelBuilder().buildApi(filePath.toFile());
         if (ramlModelResult.hasErrors()) {
             for (ValidationResult validationResult : ramlModelResult.getValidationResults()) {
-                LOG.error(validationResult.getMessage());
+                LOG.error("{}", validationResult.toString());
             }
         } else {
             final Api api = ramlModelResult.getApiV10();
