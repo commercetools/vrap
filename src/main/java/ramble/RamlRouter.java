@@ -2,6 +2,9 @@ package ramble;
 
 import com.google.common.base.Joiner;
 import org.raml.v2.api.model.v10.api.Api;
+import org.raml.v2.api.model.v10.bodies.Response;
+import org.raml.v2.api.model.v10.datamodel.ExampleSpec;
+import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.resources.Resource;
 import org.slf4j.Logger;
@@ -10,6 +13,7 @@ import ratpack.func.Action;
 import ratpack.handling.Chain;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
+import ratpack.http.Headers;
 import ratpack.http.Request;
 import ratpack.http.client.HttpClient;
 import ratpack.http.client.ReceivedResponse;
@@ -55,6 +59,7 @@ class RamlRouter implements Action<Chain> {
 
     static class Route implements Handler {
         private final static Logger LOG = LoggerFactory.getLogger(Route.class);
+        private static final String MODE_HEADER = "X-Ramble-Mode";
 
         private final Api api;
         private final Resource resource;
@@ -73,12 +78,43 @@ class RamlRouter implements Action<Chain> {
 
             final Optional<Method> ramlMethod = resource.methods().stream().filter(m -> m.method().equals(method)).findFirst();
             if (ramlMethod.isPresent()) {
-                final URI uri = proxiedUri(ctx);
-                final HttpClient httpClient = ctx.get(HttpClient.class);
-                httpClient.request(uri, toRequestSpec(request)).then(sendResponse(ctx));
+                switch (mode(ctx)) {
+                    case "proxy" :
+                        proxyRequest(ctx, request);
+                        break;
+                    default:
+                        sendExample(ctx, ramlMethod);
+                        break;
+                }
             } else {
                 ctx.next();
             }
+        }
+
+        private void proxyRequest(final Context ctx, final Request request) {
+            final URI uri = proxiedUri(ctx);
+            final HttpClient httpClient = ctx.get(HttpClient.class);
+            httpClient.request(uri, toRequestSpec(request)).then(sendResponse(ctx));
+        }
+
+
+        private void sendExample(final Context ctx, final Optional<Method> ramlMethod) {
+            final Optional<Response> response = ramlMethod.get().responses().stream().findFirst();
+            final Optional<ExampleSpec> example = response.flatMap(r -> r.body().stream()
+                    .findFirst()).map(TypeDeclaration::example);
+
+            if (example.isPresent()) {
+                ctx.render(example.get().value());
+            } else {
+                ctx.getResponse().send("No example found.");
+            }
+        }
+
+        private String mode(final Context ctx) {
+            final Headers headers = ctx.getRequest().getHeaders();
+            return Optional.ofNullable(headers.get(MODE_HEADER))
+                    .map(String::toLowerCase)
+                    .orElse("proxy");
         }
 
         private URI proxiedUri(final Context ctx) {
@@ -96,7 +132,7 @@ class RamlRouter implements Action<Chain> {
 
         private Action<RequestSpec> toRequestSpec(final Request request) {
             return r -> {
-                r.getHeaders().copy(request.getHeaders());
+                r.getHeaders().copy(request.getHeaders()).remove(MODE_HEADER);
                 r.method(request.getMethod());
             };
         }
