@@ -14,6 +14,7 @@ import ratpack.server.RatpackServer;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.util.function.Function;
 
 import static ratpack.handlebars.Template.handlebarsTemplate;
 
@@ -40,6 +41,9 @@ public class RambleApp {
             }
         } else {
             final Api api = ramlModelResult.getApiV10();
+            final Function<String, String> projectKeyModifier = content -> content.replaceAll(":\\{projectKey\\}", ":test-sunrise-jvm-mkoester-1");
+            final Function<String, String> baseUriModifier = content -> content.replaceAll("(baseUri:\\s*)\\S*", "$1http://localhost:5050/api");
+            final FileContentModifier contentModifier = new FileContentModifier(fileName.toString(), projectKeyModifier, baseUriModifier);
 
             RatpackServer.start(server -> server
                     .serverConfig(c -> c.findBaseDir())
@@ -47,7 +51,7 @@ public class RambleApp {
                     .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate(ImmutableMap.of("fileName", fileName), "index.html")))
                                             .prefix("api-console", chain1 -> chain1.all(new ApiConsoleHandler(fileName)))
                                             .prefix("api", new RamlRouter(api))
-                                            .prefix("raml", chain1 -> chain1.all(new RamlFilesHandler(baseRamlDir)))));
+                                            .prefix("raml", chain1 -> chain1.all(new RamlFilesHandler(baseRamlDir, contentModifier)))));
         }
 
     }
