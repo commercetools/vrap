@@ -3,6 +3,9 @@
 title: Songs example
 baseUri: http://localhost:5050/api
 
+mediaType:
+    application/json
+
 /artists:
     get:
         responses:
@@ -26,7 +29,6 @@ baseUri: http://localhost:5050/api
     responses:
       200:
         body:
-          application/json:
             example: |
               "songs": [
                   {
@@ -49,7 +51,6 @@ baseUri: http://localhost:5050/api
       responses:
         200:
           body:
-            application/json:
               example: |
                 {
                   "songId": "550e8400-e29b-41d4-a716-446655440000",
@@ -68,6 +69,5 @@ baseUri: http://localhost:5050/api
                 }
         404:
           body:
-            application/json:
               example: |
                 {"message": "Song not found"}
