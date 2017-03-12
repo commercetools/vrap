@@ -1,6 +1,5 @@
 package ramble;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import org.slf4j.Logger;
@@ -12,9 +11,9 @@ import ratpack.path.PathBinding;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 
 import static ratpack.handlebars.Template.handlebarsTemplate;
@@ -30,39 +29,37 @@ class ApiConsoleHandler implements Handler {
     private final static String API_CONSOLE_ASSETS = API_CONSOLE_ROOT + "dist";
 
     private final Path fileName;
+    private final FileSystem fileSystem;
 
-    public ApiConsoleHandler(final Path fileName) {
-        this.fileName = fileName;
-        initJarFileSystem();
+    public ApiConsoleHandler(final Path ramlFile) {
+        this.fileName = ramlFile;
+        this.fileSystem = initJarFileSystem();
     }
 
-    private void initJarFileSystem() {
+    private FileSystem initJarFileSystem() {
         final URL resource = Resources.getResource(API_CONSOLE_ROOT + "package.json");
         final String[] split = resource.toString().split("!");
         try {
-            FileSystems.newFileSystem(URI.create(split[0]), Collections.emptyMap());
+            return FileSystems.newFileSystem(URI.create(split[0]), Collections.emptyMap());
         } catch (IOException e) {
-            uncheck(e);
+            throw uncheck(e);
         }
     }
 
     @Override
     public void handle(final Context ctx) throws Exception {
         final PathBinding pathBinding = ctx.getPathBinding();
-
         final String path = pathBinding.getPastBinding();
 
         if (path.isEmpty() || path.equals("index.html")) {
             ctx.render(handlebarsTemplate(ImmutableMap.of("fileName", fileName), "api-console/index.html"));
         }
         else  {
-            final String apiConsoleResourcePath = Joiner.on("/").join(API_CONSOLE_ASSETS, path);
-
             try {
-                final URL resource = Resources.getResource(apiConsoleResourcePath);
-                ctx.render(Paths.get(resource.toURI()));
+                final Path resourcePath = fileSystem.getPath(API_CONSOLE_ASSETS, path);
+                ctx.render(resourcePath);
             } catch (IllegalArgumentException e) {
-                LOG.error("Resource {} not found at {}", path, apiConsoleResourcePath);
+                LOG.error("Resource {} not found at {}", path, API_CONSOLE_ASSETS);
             }
         }
     }
