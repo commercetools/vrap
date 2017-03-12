@@ -4,6 +4,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import org.raml.v2.api.model.v10.api.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.handling.Context;
@@ -25,10 +26,12 @@ import static ratpack.handlebars.Template.handlebarsTemplate;
 class RamlFilesHandler implements Handler {
     private final static Logger LOG = LoggerFactory.getLogger(RamlFilesHandler.class);
 
+    private final Api api;
     private final Path baseDir;
     private final FileContentModifier contentModifier;
 
-    public RamlFilesHandler(final Path baseDir, final FileContentModifier contentModifier) {
+    public RamlFilesHandler(final Api api, final Path baseDir, final FileContentModifier contentModifier) {
+        this.api = api;
         this.baseDir = baseDir;
         this.contentModifier = contentModifier;
     }
@@ -42,9 +45,10 @@ class RamlFilesHandler implements Handler {
         if (file.exists()) {
             final String content = Files.asByteSource(file).asCharSource(Charsets.UTF_8).read();
             ctx.byContent(byContentSpec -> byContentSpec
-                    .html(() -> renderHtml(ctx, file.getName(), content))
+                    .html(() -> renderHtml(ctx, path, content))
                     .noMatch(() -> renderReplacedContent(ctx, content)));
-
+        } else {
+            ctx.byContent(byContentSpec -> byContentSpec.noMatch(() -> ctx.render(ctx.file("api-raml/" + path))));
         }
     }
 
@@ -58,7 +62,11 @@ class RamlFilesHandler implements Handler {
     }
 
     private void renderHtml(final Context ctx, final String fileName, final String content) {
-        String contentWithIncludeLinks = content.replaceAll("(!include\\s*)(\\S*)", "$1<a href=\"$2\">$2</a>");
-        ctx.render(handlebarsTemplate(ImmutableMap.of("fileName", fileName, "fileContent", contentWithIncludeLinks), "raml/raml.html"));
+        String contentWithIncludeLinks = content.replaceAll("(!include\\s*)(\\S*)", "$1<a class=\"hljs-string\" href=\"$2\">$2</a>");
+        final ImmutableMap<String, String> model =
+                ImmutableMap.of("fileName", fileName,
+                        "fileContent", contentWithIncludeLinks,
+                        "apiTitle", api.title().value());
+        ctx.render(handlebarsTemplate(model, "api-raml/raml.html"));
     }
 }

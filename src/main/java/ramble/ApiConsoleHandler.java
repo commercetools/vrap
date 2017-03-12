@@ -19,7 +19,7 @@ class ApiConsoleHandler extends WebJarHandler {
     private final Path fileName;
 
     public ApiConsoleHandler(final Path ramlFile) {
-        super("api-console", "3.0.4", "dist");
+        super("api-console", "3.0.4");
         this.fileName = ramlFile;
     }
 

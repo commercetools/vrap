@@ -29,13 +29,11 @@ class WebJarHandler implements Handler {
     private final FileSystem jarFileSystem;
     private final String modueName;
     private final String version;
-    private final String bindPath;
 
-    public WebJarHandler(final String moduleName, final String version, final String bindPath) {
+    public WebJarHandler(final String moduleName, final String version) {
         this.jarFileSystem = initJarFileSystem(moduleName, version);
         this.modueName = moduleName;
         this.version = version;
-        this.bindPath = bindPath;
     }
 
     private FileSystem initJarFileSystem(final String moduleName, final String version) {
@@ -55,7 +53,7 @@ class WebJarHandler implements Handler {
         final String path = pathBinding.getPastBinding();
 
         try {
-            final Path resourcePath = jarFileSystem.getPath(WEBJAR_ROOT, modueName, version, bindPath, path);
+            final Path resourcePath = jarFileSystem.getPath(WEBJAR_ROOT, modueName, version, path);
             ctx.render(resourcePath);
         } catch (IllegalArgumentException e) {
             LOG.error("Resource {} not found", path);
