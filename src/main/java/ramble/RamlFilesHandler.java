@@ -1,6 +1,7 @@
 package ramble;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import org.slf4j.Logger;
@@ -15,6 +16,8 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+
+import static ratpack.handlebars.Template.handlebarsTemplate;
 
 /**
  * Serves raml files from the given base dir.
@@ -38,12 +41,24 @@ class RamlFilesHandler implements Handler {
         final File file = resolvedFilePath.toFile();
         if (file.exists()) {
             final String content = Files.asByteSource(file).asCharSource(Charsets.UTF_8).read();
-            final String replacedContent = contentModifier.apply(content);
-            final String acceptHeader = ctx.getRequest().getHeaders().get(HttpHeaderNames.ACCEPT);
-            final List<String> contentTypes = Arrays.asList(MediaType.APPLICATION_JSON, "application/raml+yaml", MediaType.PLAIN_TEXT_UTF8);
-            final String contentType = MimeParse.bestMatch(contentTypes, acceptHeader);
-            final Response response = ctx.getResponse();
-            response.send(contentType, replacedContent);
+            ctx.byContent(byContentSpec -> byContentSpec
+                    .html(() -> renderHtml(ctx, file.getName(), content))
+                    .noMatch(() -> renderReplacedContent(ctx, content)));
+
         }
+    }
+
+    private void renderReplacedContent(final Context ctx, final String content) {
+        final String replacedContent = contentModifier.apply(content);
+        final String acceptHeader = ctx.getRequest().getHeaders().get(HttpHeaderNames.ACCEPT);
+        final List<String> contentTypes = Arrays.asList(MediaType.APPLICATION_JSON, "application/raml+yaml", MediaType.PLAIN_TEXT_UTF8);
+        final String contentType = MimeParse.bestMatch(contentTypes, acceptHeader);
+        final Response response = ctx.getResponse();
+        response.send(contentType, replacedContent);
+    }
+
+    private void renderHtml(final Context ctx, final String fileName, final String content) {
+        String contentWithIncludeLinks = content.replaceAll("(!include\\s*)(\\S*)", "$1<a href=\"$2\">$2</a>");
+        ctx.render(handlebarsTemplate(ImmutableMap.of("fileName", fileName, "fileContent", contentWithIncludeLinks), "raml/raml.html"));
     }
 }
