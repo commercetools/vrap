@@ -48,10 +48,10 @@ public class RambleApp {
             RatpackServer.start(server -> server
                     .serverConfig(c -> c.findBaseDir())
                     .registry(Guice.registry(b -> b.module(HandlebarsModule.class)))
-                    .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate(ImmutableMap.of("fileName", fileName), "index.html")))
+                    .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate(ImmutableMap.of("fileName", fileName, "apiTitle", api.title().value()), "index.html")))
                                             .prefix("api-console", chain1 -> chain1.all(new ApiConsoleHandler(fileName)))
                                             .prefix("api", new RamlRouter(api))
-                                            .prefix("raml", chain1 -> chain1.all(new RamlFilesHandler(baseRamlDir, contentModifier)))));
+                                            .prefix("api-raml", chain1 -> chain1.all(new RamlFilesHandler(baseRamlDir, contentModifier)))));
         }
 
     }

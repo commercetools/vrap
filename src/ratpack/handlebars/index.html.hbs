@@ -4,12 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Ramble</title>
+    <style>
+a {
+    color: #8e0101;
+}
+body {
+color: #888;
+    font-family: Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 18px;
+    line-height: 1.4;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+    </style>
 </head>
 <body>
 <h1>Welcome to Ramble!</h1>
 
 <ul>
-    <li><a href="raml/{{fileName}}">{{fileName}}</a></li>
+    <li><a href="api-raml/{{fileName}}">{{apiTitle}} RAML API Specification</a></li>
     <li><a href="api-console/">API Console</a></li>
 </ul>
 
