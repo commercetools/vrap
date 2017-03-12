@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 import ratpack.http.MediaType;
+import ratpack.http.Response;
 import ratpack.http.internal.MimeParse;
 
 import java.io.File;
@@ -36,16 +37,13 @@ class RamlFilesHandler implements Handler {
         final Path resolvedFilePath = baseDir.resolve(path).normalize();
         final File file = resolvedFilePath.toFile();
         if (file.exists()) {
-            if (contentModifier.matches(path)) {
-                final String content = Files.asByteSource(file).asCharSource(Charsets.UTF_8).read();
-                final String replacedContent = contentModifier.apply(content);
-                final String acceptHeader = ctx.getRequest().getHeaders().get(HttpHeaderNames.ACCEPT);
-                final List<String> contentTypes = Arrays.asList(MediaType.APPLICATION_JSON, "application/raml+yaml", MediaType.PLAIN_TEXT_UTF8);
-                final String contentType = MimeParse.bestMatch(contentTypes, acceptHeader);
-                ctx.getResponse().send(contentType, replacedContent);
-            } else {
-                ctx.render(resolvedFilePath);
-            }
+            final String content = Files.asByteSource(file).asCharSource(Charsets.UTF_8).read();
+            final String replacedContent = contentModifier.apply(content);
+            final String acceptHeader = ctx.getRequest().getHeaders().get(HttpHeaderNames.ACCEPT);
+            final List<String> contentTypes = Arrays.asList(MediaType.APPLICATION_JSON, "application/raml+yaml", MediaType.PLAIN_TEXT_UTF8);
+            final String contentType = MimeParse.bestMatch(contentTypes, acceptHeader);
+            final Response response = ctx.getResponse();
+            response.send(contentType, replacedContent);
         }
     }
 }
