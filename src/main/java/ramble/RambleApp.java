@@ -1,6 +1,8 @@
 package ramble;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.Files;
 import org.raml.v2.api.RamlModelBuilder;
 import org.raml.v2.api.RamlModelResult;
 import org.raml.v2.api.model.common.ValidationResult;
@@ -11,9 +13,11 @@ import ratpack.guice.Guice;
 import ratpack.handlebars.HandlebarsModule;
 import ratpack.server.RatpackServer;
 
+import java.io.Reader;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.util.Properties;
 import java.util.function.Function;
 
 import static ratpack.handlebars.Template.handlebarsTemplate;
@@ -40,8 +44,14 @@ public class RambleApp {
                 LOG.error("{}", validationResult.toString());
             }
         } else {
+            final Path ramblePropertiesPath = baseRamlDir.resolve("ramble.properties");
+            final Properties rambleProperties = new Properties();
+            try (final Reader reader = Files.newReader(ramblePropertiesPath.toFile(), Charsets.UTF_8)) {
+                rambleProperties.load(reader);
+            }
             final Api api = ramlModelResult.getApiV10();
-            final Function<String, String> projectKeyModifier = content -> content.replaceAll(":\\{projectKey\\}", ":test-sunrise-jvm-mkoester-1");
+            final String projectKey = rambleProperties.getProperty("projectKey", "");
+            final Function<String, String> projectKeyModifier = content -> content.replaceAll(":\\{projectKey\\}", ":" + projectKey);
             final Function<String, String> baseUriModifier = content -> content.replaceAll("(baseUri:\\s*)\\S*", "$1http://localhost:5050/api");
             final FileContentModifier contentModifier = new FileContentModifier(fileName.toString(), projectKeyModifier, baseUriModifier);
 
@@ -49,9 +59,9 @@ public class RambleApp {
                     .serverConfig(c -> c.findBaseDir())
                     .registry(Guice.registry(b -> b.module(HandlebarsModule.class)))
                     .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate(ImmutableMap.of("fileName", fileName, "apiTitle", api.title().value()), "index.html")))
-                                            .prefix("api-console", chain1 -> chain1.all(new ApiConsoleHandler(fileName)))
-                                            .prefix("api", new RamlRouter(api))
-                                            .prefix("api-raml", chain1 -> chain1.all(new RamlFilesHandler(api, baseRamlDir, contentModifier)))));
+                            .prefix("api-console", chain1 -> chain1.all(new ApiConsoleHandler(fileName)))
+                            .prefix("api", new RamlRouter(api))
+                            .prefix("api-raml", chain1 -> chain1.all(new RamlFilesHandler(api, baseRamlDir, contentModifier)))));
         }
 
     }
