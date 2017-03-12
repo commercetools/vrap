@@ -132,7 +132,8 @@ class RamlRouter implements Action<Chain> {
 
         private Action<RequestSpec> toRequestSpec(final Request request) {
             return r -> {
-                r.getHeaders().copy(request.getHeaders()).remove(MODE_HEADER);
+                final Headers headers = request.getHeaders();
+                r.getHeaders().copy(headers).remove(MODE_HEADER).add("Accept-Encoding", "gzip,deflate");
                 r.method(request.getMethod());
             };
         }
