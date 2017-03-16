@@ -1,8 +1,6 @@
 package ramble;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Files;
 import org.raml.v2.api.RamlModelBuilder;
 import org.raml.v2.api.RamlModelResult;
 import org.raml.v2.api.model.common.ValidationResult;
@@ -13,11 +11,9 @@ import ratpack.guice.Guice;
 import ratpack.handlebars.HandlebarsModule;
 import ratpack.server.RatpackServer;
 
-import java.io.Reader;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
-import java.util.Properties;
 import java.util.function.Function;
 
 import static ratpack.handlebars.Template.handlebarsTemplate;
@@ -36,7 +32,6 @@ public class RambleApp {
         final FileSystem fileSystem = FileSystems.getDefault();
         final Path filePath = fileSystem.getPath(args[0]).toAbsolutePath();
         final Path fileName = filePath.getFileName();
-        final Path baseRamlDir = filePath.getParent();
 
         final RamlModelResult ramlModelResult = new RamlModelBuilder().buildApi(filePath.toFile());
         if (ramlModelResult.hasErrors()) {
@@ -51,11 +46,11 @@ public class RambleApp {
             RatpackServer.start(server -> server
                     .serverConfig(c -> c.findBaseDir())
                     .registry(Guice.registry(b -> b.module(HandlebarsModule.class)))
-                    .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate(ImmutableMap.of("fileName", fileName, "apiTitle", api.title().value()), "index.html")))
+                    .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate(ImmutableMap.of("apiTitle", api.title().value()), "index.html")))
                             .prefix("api-console", chain1 -> chain1.all(new ApiConsoleHandler(fileName)))
                             .prefix("assets", chain1 -> chain.files())
                             .prefix("api", new RamlRouter(api))
-                            .prefix("api-raml", chain1 -> chain1.all(new RamlFilesHandler(api, baseRamlDir, contentModifier)))));
+                            .prefix("api-raml", chain1 -> chain1.all(new RamlFilesHandler(api, filePath, contentModifier)))));
         }
 
     }

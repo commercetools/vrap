@@ -1,22 +1,8 @@
-Java Application project template
-------------------------------------
+# RAML proxy and mock server
 
-You have just created a basic Java application. There is a standard project
-structure for source code and tests.
+# End points
 
-In this project you get:
-
-* A Gradle build file
-* A standard project structure:
-
-    <proj>
-      |
-      +- src
-          |
-          +- main
-          |     |
-          |     +- java
-          |
-          +- test
-          |   |
-          |   +- java
+- [API browser](http://localhst:5050/api-raml/)
+    - [with resolved includes](http://localhost:5050/api-raml/?include)
+- [API console](http://localhst:5050/api-console/)
+    - [with resolved includes](http://localhost:5050/api-console/?include)

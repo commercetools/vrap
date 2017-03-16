@@ -29,7 +29,10 @@ class ApiConsoleHandler extends WebJarHandler {
         final String path = pathBinding.getPastBinding();
 
         if (path.isEmpty() || path.equals("index.html")) {
-            ctx.render(handlebarsTemplate(ImmutableMap.of("fileName", fileName), "api-console/index.html"));
+            final String queryParams = QueryParams.queryParams(ctx);
+            final ImmutableMap<String, Object> model =
+                    ImmutableMap.of("ramlPath", "api-raml/" + fileName.toString(), "queryParams", queryParams);
+            ctx.render(handlebarsTemplate(model, "api-console/index.html"));
         }
         else  {
             super.handle(ctx);

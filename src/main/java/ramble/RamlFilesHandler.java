@@ -27,12 +27,14 @@ class RamlFilesHandler implements Handler {
     private final static Logger LOG = LoggerFactory.getLogger(RamlFilesHandler.class);
 
     private final Api api;
+    private final Path ramlFile;
     private final Path baseDir;
     private final FileContentModifier contentModifier;
 
-    public RamlFilesHandler(final Api api, final Path baseDir, final FileContentModifier contentModifier) {
+    public RamlFilesHandler(final Api api, final Path ramlFile, final FileContentModifier contentModifier) {
         this.api = api;
-        this.baseDir = baseDir;
+        this.ramlFile = ramlFile;
+        this.baseDir = ramlFile.getParent();
         this.contentModifier = contentModifier;
     }
 
@@ -40,10 +42,15 @@ class RamlFilesHandler implements Handler {
     public void handle(final Context ctx) throws Exception {
         final String path = ctx.getPathBinding().getPastBinding();
 
-        final Path resolvedFilePath = baseDir.resolve(path).normalize();
+        final Path resolvedFilePath = path.isEmpty() ? ramlFile : baseDir.resolve(path).normalize();
         final File file = resolvedFilePath.toFile();
         if (file.exists()) {
-            final String content = Files.asByteSource(file).asCharSource(Charsets.UTF_8).read();
+            final String content;
+            if (QueryParams.resolveIncludes(ctx)) {
+                content = new IncludeResolver().preprocess(resolvedFilePath).toString();
+            } else {
+                content = Files.asByteSource(file).asCharSource(Charsets.UTF_8).read();
+            }
             ctx.byContent(byContentSpec -> byContentSpec
                     .html(() -> renderHtml(ctx, path, content))
                     .noMatch(() -> renderReplacedContent(ctx, content)));

@@ -1,0 +1,18 @@
+/test:
+    get:
+        responses:
+            200:
+                body:
+                    application/json:
+                        example: |
+                          {
+                             "name": "test"
+                          }
+
+                        type:
+                          displayName: Example Type
+                          type: object
+                          properties:
+                              name:
+                                  type: string
+
