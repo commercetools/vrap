@@ -44,22 +44,16 @@ public class RambleApp {
                 LOG.error("{}", validationResult.toString());
             }
         } else {
-            final Path ramblePropertiesPath = baseRamlDir.resolve("ramble.properties");
-            final Properties rambleProperties = new Properties();
-            try (final Reader reader = Files.newReader(ramblePropertiesPath.toFile(), Charsets.UTF_8)) {
-                rambleProperties.load(reader);
-            }
             final Api api = ramlModelResult.getApiV10();
-            final String projectKey = rambleProperties.getProperty("projectKey", "");
-            final Function<String, String> projectKeyModifier = content -> content.replaceAll(":\\{projectKey\\}", ":" + projectKey);
             final Function<String, String> baseUriModifier = content -> content.replaceAll("(baseUri:\\s*)\\S*", "$1http://localhost:5050/api");
-            final FileContentModifier contentModifier = new FileContentModifier(fileName.toString(), projectKeyModifier, baseUriModifier);
+            final FileContentModifier contentModifier = new FileContentModifier(fileName.toString(), baseUriModifier);
 
             RatpackServer.start(server -> server
                     .serverConfig(c -> c.findBaseDir())
                     .registry(Guice.registry(b -> b.module(HandlebarsModule.class)))
                     .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate(ImmutableMap.of("fileName", fileName, "apiTitle", api.title().value()), "index.html")))
                             .prefix("api-console", chain1 -> chain1.all(new ApiConsoleHandler(fileName)))
+                            .prefix("assets", chain1 -> chain.files())
                             .prefix("api", new RamlRouter(api))
                             .prefix("api-raml", chain1 -> chain1.all(new RamlFilesHandler(api, baseRamlDir, contentModifier)))));
         }
