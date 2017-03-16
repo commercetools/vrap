@@ -15,6 +15,7 @@ class FileContentModifier implements Function<String, String> {
      * @param path the path
      * @param contentModifiers the content modifiers
      */
+    @SafeVarargs
     public FileContentModifier(final String path, final Function<String, String>... contentModifiers) {
         this.path = path;
         this.contentModifier = Stream.of(contentModifiers).reduce(Function.identity(), Function::compose);
