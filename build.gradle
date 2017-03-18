@@ -24,8 +24,10 @@ repositories {
 }
 
 dependencies {
-    compile 'org.raml:raml-parser-2:1.0.7'
     compile 'org.webjars.npm:api-console:3.0.4'
+    compile 'org.webjars.npm:livereload-js:2.2.2'
+
+    compile 'org.raml:raml-parser-2:1.0.7'
     compile 'io.ratpack:ratpack-handlebars:1.4.5'
     compile 'org.assertj:assertj-core:3.6.2'
 

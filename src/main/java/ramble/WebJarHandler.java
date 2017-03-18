@@ -13,8 +13,11 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static ratpack.util.Exceptions.uncheck;
 
@@ -30,21 +33,28 @@ class WebJarHandler implements Handler {
     private final String modueName;
     private final String version;
 
+    private final static ConcurrentMap<URI, FileSystem> JAR_FILE_SYSTEMS = new ConcurrentHashMap<>();
+
     public WebJarHandler(final String moduleName, final String version) {
-        this.jarFileSystem = initJarFileSystem(moduleName, version);
         this.modueName = moduleName;
         this.version = version;
+        final URI uri = jarUri(moduleName, version);
+        this.jarFileSystem = JAR_FILE_SYSTEMS.computeIfAbsent(uri, this::initJarFileSystem);
     }
 
-    private FileSystem initJarFileSystem(final String moduleName, final String version) {
-        final String webJarPath = Joiner.on("/").join(WEBJAR_ROOT, moduleName, version);
-        final URL resource = Resources.getResource(webJarPath);
-        final String[] split = resource.toString().split("!");
+    private FileSystem initJarFileSystem(final URI uri) {
         try {
-            return FileSystems.newFileSystem(URI.create(split[0]), Collections.emptyMap());
+            return FileSystems.newFileSystem(uri, Collections.emptyMap());
         } catch (IOException e) {
             throw uncheck(e);
         }
+    }
+
+    private URI jarUri(final String moduleName, final String version) {
+        final String webJarPath = Joiner.on("/").join(WEBJAR_ROOT, moduleName, version);
+        final URL resource = Resources.getResource(webJarPath);
+        final String[] split = resource.toString().split("!");
+        return URI.create(split[0]);
     }
 
     @Override
@@ -52,11 +62,11 @@ class WebJarHandler implements Handler {
         final PathBinding pathBinding = ctx.getPathBinding();
         final String path = pathBinding.getPastBinding();
 
-        try {
-            final Path resourcePath = jarFileSystem.getPath(WEBJAR_ROOT, modueName, version, path);
+        final Path resourcePath = jarFileSystem.getPath(WEBJAR_ROOT, modueName, version, path);
+        if (Files.exists(resourcePath)) {
             ctx.render(resourcePath);
-        } catch (IllegalArgumentException e) {
-            LOG.error("Resource {} not found", path);
+        } else {
+            ctx.next();
         }
     }
 }

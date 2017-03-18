@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import ratpack.guice.Guice;
 import ratpack.handlebars.HandlebarsModule;
 import ratpack.server.RatpackServer;
+import ratpack.websocket.WebSockets;
 
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -47,10 +48,14 @@ public class RambleApp {
                     .serverConfig(c -> c.findBaseDir())
                     .registry(Guice.registry(b -> b.module(HandlebarsModule.class)))
                     .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate(ImmutableMap.of("apiTitle", api.title().value()), "index.html")))
-                            .prefix("api-console", chain1 -> chain1.all(new ApiConsoleHandler(fileName)))
+                            .prefix("api-console", chain1 -> chain1.all(
+                                    ctx -> ctx.insert(new ApiConsoleHandler(filePath),
+                                                      new WebJarHandler("api-console", "3.0.4"),
+                                                      new WebJarHandler("livereload-js", "2.2.2"))))
                             .prefix("assets", chain1 -> chain.files())
                             .prefix("api", new RamlRouter(api))
-                            .prefix("api-raml", chain1 -> chain1.all(new RamlFilesHandler(api, filePath, contentModifier)))));
+                            .prefix("api-raml", chain1 -> chain1.all(new RamlFilesHandler(api, filePath, contentModifier)))
+                            .get("livereload", ctx -> WebSockets.websocket(ctx, new LivereloadHandler(filePath)))));
         }
 
     }
