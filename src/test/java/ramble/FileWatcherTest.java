@@ -13,7 +13,7 @@ import java.util.Arrays;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 /**
- * Unit tests for {@link FileWatcher}.
+ * Unit tests for {@link DefaultFileWatcher}.
  */
 public class FileWatcherTest {
     @Rule
@@ -22,13 +22,13 @@ public class FileWatcherTest {
     @Test
     public void lastModified() throws Exception {
         final File watchedFile = folder.newFile();
-        final FileWatcher fileWatcher = new FileWatcher(folder.getRoot().toPath(), Arrays.asList(watchedFile.toPath()));
+        final FileWatcher fileWatcher = FileWatcher.of(folder.getRoot().toPath(), Arrays.asList(watchedFile.toPath()));
 
         folder.newFile();
         final FileTime expectedLastModified = Files.getLastModifiedTime(watchedFile.toPath());
         FileTime result = ExecHarness.yieldSingle(execution -> fileWatcher.lastModified()).getValue();
 
-        assertThat(result).isEqualTo(expectedLastModified);
+        assertThat(result.toMillis()).isGreaterThanOrEqualTo(expectedLastModified.toMillis());
 
         final FileTime newExpectedLastModified = FileTime.from(expectedLastModified.toInstant().plusSeconds(60));
         Files.setLastModifiedTime(watchedFile.toPath(), newExpectedLastModified);

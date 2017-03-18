@@ -35,6 +35,8 @@ dependencies {
     // See here for a non blocking appender http://logging.apache.org/log4j/2.x/manual/async.html
     compile 'org.slf4j:slf4j-simple:1.7.21'
 
+    compile 'net.incongru.watchservice:barbary-watchservice:1.0'
+
     testCompile "org.spockframework:spock-core:1.0-groovy-2.4"
 }
 
