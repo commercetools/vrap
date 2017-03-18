@@ -11,6 +11,8 @@ import ratpack.websocket.WebSocketMessage;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,19 +28,25 @@ class LivereloadHandler implements WebSocketHandler<String> {
     private final static Logger LOG = LoggerFactory.getLogger(LivereloadHandler.class);
 
     private final IncludeCollector includeCollector;
+    private final FileWatcher fileWatcher;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private ConcurrentMap<String, Long> connectionStart = new ConcurrentHashMap<>();
     private ConcurrentMap<String, WebSocket> webSockets = new ConcurrentHashMap<>();
 
     public LivereloadHandler(final Path ramlFile) {
         this.includeCollector = new IncludeCollector(ramlFile);
+        final List<Path> watchFiles = includeCollector.collect();
+        watchFiles.add(ramlFile);
+        this.fileWatcher = FileWatcher.of(ramlFile.getParent(), watchFiles);
+    }
+
+    private void reload(final WebSocket webSocket, final FileTime fileTime) {
+        send(webSocket, new ReloadMessage("api-console.js"));
     }
 
     @Override
     public String onOpen(final WebSocket webSocket) throws Exception {
         final String clientId = UUID.randomUUID().toString();
         webSockets.put(clientId, webSocket);
-        connectionStart.put(clientId, System.currentTimeMillis());
 
         return clientId;
     }
@@ -48,7 +56,6 @@ class LivereloadHandler implements WebSocketHandler<String> {
         final String clientId = close.getOpenResult();
 
         webSockets.remove(clientId);
-        connectionStart.remove(clientId);
     }
 
     @Override
@@ -57,11 +64,15 @@ class LivereloadHandler implements WebSocketHandler<String> {
         final WebSocket connection = frame.getConnection();
         final List<Message> responses = handle(frame, request);
         for (final Message response : responses) {
-            try {
-                connection.send(objectMapper.writeValueAsString(response));
-            } catch (Exception e) {
-                LOG.error("Error sending response", e);
-            }
+            send(connection, response);
+        }
+    }
+
+    private void send(final WebSocket webSocket, final Message message) {
+        try {
+            webSocket.send(objectMapper.writeValueAsString(message));
+        } catch (Exception e) {
+            LOG.error("Error sending response", e);
         }
     }
 
@@ -74,11 +85,12 @@ class LivereloadHandler implements WebSocketHandler<String> {
                 helloResponse.setServerName("Ramble server");
                 helloResponse.setProtocols(helloRequest.protocols);
                 responses.add(helloResponse);
-                final String clientId = frame.getOpenResult();
-                final Long connectionStart = this.connectionStart.get(clientId);
-                if (connectionStart != null && Long.max(connectionStart, lastModified()) > connectionStart) {
-                    final ReloadMessage reloadMessage = new ReloadMessage("");
+                final long connectionStart = Instant.now().toEpochMilli();
+                if (Long.max(connectionStart, lastModified()) > connectionStart) {
+                    final ReloadMessage reloadMessage = new ReloadMessage("/api-console");
                     responses.add(reloadMessage);
+                } else {
+                    this.fileWatcher.lastModified().then(fileTime -> reload(frame.getConnection(), fileTime));
                 }
                 return responses;
             default:
@@ -89,7 +101,8 @@ class LivereloadHandler implements WebSocketHandler<String> {
     private Long lastModified() {
         final long lastModified = includeCollector.collect().stream()
                 .map(Path::toFile).map(File::lastModified)
-                .max(Long::compareTo).orElse(0L);
+                .max(Long::compareTo)
+                .orElse(0L);
         return lastModified;
     }
 

@@ -27,11 +27,15 @@ interface FileWatcher {
      *
      * @throws IOException
      */
-    static FileWatcher of(final Path parent, final List<Path> watchFiles) throws IOException
+    static FileWatcher of(final Path parent, final List<Path> watchFiles)
     {
-        final String osName = System.getProperty("os.name");
-        final FileWatcher fileWatcher = "Mac OS X".equalsIgnoreCase(osName) ?
-                new MacOSXFileWatcher(parent, watchFiles) : new DefaultFileWatcher(parent, watchFiles);
-        return fileWatcher;
+        try {
+            final String osName = System.getProperty("os.name");
+            final FileWatcher fileWatcher = "Mac OS X".equalsIgnoreCase(osName) ?
+                    new MacOSXFileWatcher(parent, watchFiles) : new DefaultFileWatcher(parent, watchFiles);
+            return fileWatcher;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
