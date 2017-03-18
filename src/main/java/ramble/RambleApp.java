@@ -15,6 +15,7 @@ import ratpack.websocket.WebSockets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Function;
 
 import static ratpack.handlebars.Template.handlebarsTemplate;
@@ -43,10 +44,13 @@ public class RambleApp {
             final Api api = ramlModelResult.getApiV10();
             final Function<String, String> baseUriModifier = content -> content.replaceAll("(baseUri:\\s*)\\S*", "$1http://localhost:5050/api");
             final FileContentModifier contentModifier = new FileContentModifier(fileName.toString(), baseUriModifier);
+            final List<Path> watchFiles = new IncludeCollector(filePath).collect();
+            watchFiles.add(filePath);
 
             RatpackServer.start(server -> server
                     .serverConfig(c -> c.findBaseDir())
-                    .registry(Guice.registry(b -> b.module(HandlebarsModule.class)))
+                    .registry(Guice.registry(b -> b.module(HandlebarsModule.class)
+                            .bindInstance(FileWatcher.of(filePath.getParent(), watchFiles))))
                     .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate(ImmutableMap.of("apiTitle", api.title().value()), "index.html")))
                             .prefix("api-console", chain1 -> chain1.all(
                                     ctx -> ctx.insert(new ApiConsoleHandler(filePath),
@@ -55,7 +59,7 @@ public class RambleApp {
                             .prefix("assets", chain1 -> chain.files())
                             .prefix("api", new RamlRouter(api))
                             .prefix("api-raml", chain1 -> chain1.all(new RamlFilesHandler(api, filePath, contentModifier)))
-                            .get("livereload", ctx -> WebSockets.websocket(ctx, new LivereloadHandler(filePath)))));
+                            .get("livereload", ctx -> WebSockets.websocket(ctx, new LivereloadHandler(ctx, filePath)))));
         }
 
     }

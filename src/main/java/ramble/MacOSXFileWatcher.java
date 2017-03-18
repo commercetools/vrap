@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.exec.Downstream;
 import ratpack.exec.Promise;
+import ratpack.service.StopEvent;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,6 +46,12 @@ class MacOSXFileWatcher implements FileWatcher {
     @Override
     public Promise<FileTime> lastModified() {
         return Promise.async(downstream -> pollLastModified(downstream));
+    }
+
+    @Override
+    public void onStop(final StopEvent event) throws Exception {
+        watchService.close();
+        LOG.info("Closed watch service");
     }
 
     private void pollLastModified(Downstream<? super FileTime> downstream) {

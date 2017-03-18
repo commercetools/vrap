@@ -1,6 +1,7 @@
 package ramble;
 
 import ratpack.exec.Promise;
+import ratpack.service.Service;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -10,7 +11,7 @@ import java.util.List;
 /**
  * This interface describes the operations of a file watcher.
  */
-interface FileWatcher {
+interface FileWatcher extends Service {
     /**
      * The returned promise completes if a file change was detected and returns the latest modification time.
      *

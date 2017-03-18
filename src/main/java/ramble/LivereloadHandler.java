@@ -4,18 +4,16 @@ import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ratpack.handling.Context;
 import ratpack.websocket.WebSocket;
 import ratpack.websocket.WebSocketClose;
 import ratpack.websocket.WebSocketHandler;
 import ratpack.websocket.WebSocketMessage;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -27,16 +25,12 @@ import java.util.concurrent.ConcurrentMap;
 class LivereloadHandler implements WebSocketHandler<String> {
     private final static Logger LOG = LoggerFactory.getLogger(LivereloadHandler.class);
 
-    private final IncludeCollector includeCollector;
     private final FileWatcher fileWatcher;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private ConcurrentMap<String, WebSocket> webSockets = new ConcurrentHashMap<>();
 
-    public LivereloadHandler(final Path ramlFile) {
-        this.includeCollector = new IncludeCollector(ramlFile);
-        final List<Path> watchFiles = includeCollector.collect();
-        watchFiles.add(ramlFile);
-        this.fileWatcher = FileWatcher.of(ramlFile.getParent(), watchFiles);
+    public LivereloadHandler(final Context ctx, final Path ramlFile) {
+        this.fileWatcher = ctx.get(FileWatcher.class);
     }
 
     private void reload(final WebSocket webSocket, final FileTime fileTime) {
@@ -62,10 +56,7 @@ class LivereloadHandler implements WebSocketHandler<String> {
     public void onMessage(final WebSocketMessage<String> frame) throws Exception {
         final Message request = objectMapper.readValue(frame.getText(), Message.class);
         final WebSocket connection = frame.getConnection();
-        final List<Message> responses = handle(frame, request);
-        for (final Message response : responses) {
-            send(connection, response);
-        }
+        respond(frame, request).ifPresent(response -> send(connection, response));
     }
 
     private void send(final WebSocket webSocket, final Message message) {
@@ -76,34 +67,20 @@ class LivereloadHandler implements WebSocketHandler<String> {
         }
     }
 
-    private List<Message> handle(final WebSocketMessage<String> frame, final Message request) {
+    private Optional<Message> respond(final WebSocketMessage<String> frame, final Message request) {
         switch (request.command) {
             case "hello":
-                final List<Message> responses = new ArrayList<>();
                 final HelloMessage helloRequest = (HelloMessage) request;
                 final HelloMessage helloResponse = new HelloMessage();
                 helloResponse.setServerName("Ramble server");
                 helloResponse.setProtocols(helloRequest.protocols);
-                responses.add(helloResponse);
-                final long connectionStart = Instant.now().toEpochMilli();
-                if (Long.max(connectionStart, lastModified()) > connectionStart) {
-                    final ReloadMessage reloadMessage = new ReloadMessage("/api-console");
-                    responses.add(reloadMessage);
-                } else {
-                    this.fileWatcher.lastModified().then(fileTime -> reload(frame.getConnection(), fileTime));
-                }
-                return responses;
-            default:
-                return Collections.emptyList();
-        }
-    }
 
-    private Long lastModified() {
-        final long lastModified = includeCollector.collect().stream()
-                .map(Path::toFile).map(File::lastModified)
-                .max(Long::compareTo)
-                .orElse(0L);
-        return lastModified;
+                this.fileWatcher.lastModified().then(fileTime -> reload(frame.getConnection(), fileTime));
+
+                return Optional.of(helloResponse);
+            default:
+                return Optional.empty();
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
