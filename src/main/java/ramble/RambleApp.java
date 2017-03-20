@@ -58,7 +58,10 @@ public class RambleApp {
                                                       new WebJarHandler("livereload-js", "2.2.2"))))
                             .prefix("assets", chain1 -> chain.files())
                             .prefix("api", new RamlRouter(api))
-                            .prefix("api-raml", chain1 -> chain1.all(new RamlFilesHandler(api, filePath, contentModifier)))
+                            .prefix("api-raml", chain1 -> chain1.all(
+                                        ctx -> ctx.insert(
+                                                new RambleExtensionHandler(api, filePath),
+                                                new RamlFilesHandler(api, filePath, contentModifier))))
                             .get("livereload", ctx -> WebSockets.websocket(ctx, new LivereloadHandler(ctx, filePath)))));
         }
 

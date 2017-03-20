@@ -31,7 +31,7 @@ class ApiConsoleHandler implements Handler {
         if (path.isEmpty() || path.equals("index.html")) {
             final String queryParams = QueryParams.queryParams(ctx);
             final ImmutableMap<String, Object> model =
-                    ImmutableMap.of("ramlPath", "api-raml/" + fileName.toString(), "queryParams", queryParams);
+                    ImmutableMap.of("ramlPath", "api-raml/Ramble-Extension.raml", "queryParams", queryParams);
             ctx.render(handlebarsTemplate(model, "api-console/index.html"));
         }
         else  {

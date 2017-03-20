@@ -1,0 +1,13 @@
+#%RAML 1.0 Extension
+usage: Adds ramble specific headers
+extends: {{fileName}}?{{queryParams}}
+
+{{#each resourceExtensions}}
+{{indent}}{{resourcePath}}:
+{{indent}}{{#each methods}}
+{{indent}}    {{method}}:
+{{indent}}       headers:
+{{indent}}           X-Ramble-Mode:
+{{indent}}               enum: [ proxy, example ]
+{{/each}}
+{{/each}}
