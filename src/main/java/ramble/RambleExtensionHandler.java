@@ -42,7 +42,9 @@ class RambleExtensionHandler implements Handler {
                             "queryParams", ctx.getRequest().getQuery(),
                             "resourceExtensions", resourceExtensions);
 
-            ctx.render(handlebarsTemplate(model, "api-raml/Ramble-Extension.raml"));
+            ctx.byContent(byContentSpec -> byContentSpec
+                    .html(() -> ctx.render(handlebarsTemplate(model, "api-raml/Ramble-Extension.html")))
+                    .noMatch(() -> ctx.render(handlebarsTemplate(model, "api-raml/Ramble-Extension.raml"))));
         } else {
             ctx.next();
         }

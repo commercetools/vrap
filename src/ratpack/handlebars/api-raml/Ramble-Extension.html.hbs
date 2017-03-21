@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ramble-Extension.raml</title>
+    <base href="http://localhost:5050/api-raml/"></head>
+<style>
+body {
+    color: #888;
+    font-family: Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.2;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+.title {
+    text-align: center;
+    color: #333;
+}
+</style>
+    <link rel="stylesheet" href="highlight/styles/solarized-light.css" type="text/css">
+    <script src="highlight/highlight.pack.js" type="application/javascript"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+</head>
+<body>
+    <h1 class="title">Ramble-Extension.raml</h1>
+    <pre><code>
+#%RAML 1.0 Extension
+usage: Adds ramble specific headers
+extends: {{fileName}}?{{queryParams}}
+
+{{#each resourceExtensions}}
+{{indent}}{{resourcePath}}:
+{{indent}}{{#each methods}}
+{{indent}}    {{method}}:
+{{indent}}       headers:
+{{indent}}           X-Ramble-Mode:
+{{indent}}               displayName: Ramble mode
+{{indent}}               enum: [ {{modes}} ]
+{{/each}}
+{{/each}}
+    </code></pre>
+</body>
+</html>
