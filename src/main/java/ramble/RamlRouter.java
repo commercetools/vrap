@@ -118,12 +118,14 @@ class RamlRouter implements Action<Chain> {
         }
 
         private URI proxiedUri(final Context ctx) {
-            final String boundPath = ctx.getPathBinding().getBoundTo() + ctx.getRequest().getQuery();
+            final Request request = ctx.getRequest();
+            final String query = request.getQuery();
+            final String boundPath = ctx.getPathBinding().getBoundTo() + (!query.isEmpty() ? "?" + query : "");
             final String baseUri = api.baseUri().value();
             final String uriStr = baseUri.endsWith("/") ?
                     baseUri + boundPath :
                     Joiner.on("/").join(baseUri, boundPath);
-            return URI.create(uriStr);
+                return URI.create(uriStr);
         }
 
         private Action<ReceivedResponse> sendResponse(final Context ctx) {
