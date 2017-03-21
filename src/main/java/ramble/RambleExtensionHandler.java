@@ -23,22 +23,17 @@ import static ratpack.handlebars.Template.handlebarsTemplate;
 class RambleExtensionHandler implements Handler {
     private final static Logger LOG = LoggerFactory.getLogger(RambleExtensionHandler.class);
 
-    private final Api api;
-    private final Path ramlFile;
-
-    public RambleExtensionHandler(final Api api, final Path ramlFile) {
-        this.api = api;
-        this.ramlFile = ramlFile;
-    }
-
     @Override
     public void handle(final Context ctx) throws Exception {
+        final RamlModelRepository ramlModelRepository = ctx.get(RamlModelRepository.class);
+        final Api api = ramlModelRepository.getApi();
         final String path = ctx.getPathBinding().getPastBinding();
 
         if (path.equals("Ramble-Extension.raml")) {
+            final Path filePath = ramlModelRepository.getFilePath();
             List<ResourceExtension> resourceExtensions = resourceExtensions(api.resources(), "");
             final ImmutableMap<String, Object> model =
-                    ImmutableMap.of("fileName", ramlFile.getFileName(),
+                    ImmutableMap.of("fileName", filePath.getFileName(),
                             "queryParams", ctx.getRequest().getQuery(),
                             "resourceExtensions", resourceExtensions);
 

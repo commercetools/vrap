@@ -10,9 +10,9 @@ import org.raml.v2.api.model.v10.resources.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.func.Action;
-import ratpack.handling.Chain;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
+import ratpack.handling.Handlers;
 import ratpack.http.Headers;
 import ratpack.http.Request;
 import ratpack.http.client.HttpClient;
@@ -20,6 +20,7 @@ import ratpack.http.client.ReceivedResponse;
 import ratpack.http.client.RequestSpec;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -27,35 +28,35 @@ import java.util.regex.Pattern;
 /**
  * This class routes request for raml resource to a raml route.
  */
-class RamlRouter implements Action<Chain> {
+class RamlRouter implements Handler {
     private final Logger LOG = LoggerFactory.getLogger(RamlRouter.class);
 
-    private final Api api;
-
-    public RamlRouter(final Api api) {
-        this.api = api;
-    }
-
     @Override
-    public void execute(final Chain chain) throws Exception {
-        createRoutes(chain, api);
+    public void handle(final Context ctx) throws Exception {
+        final RamlModelRepository ramlModelRepository = ctx.get(RamlModelRepository.class);
+        final Api api = ramlModelRepository.getApi();
+        final List<Handler> routes = createRoutes(api);
+        ctx.insert(routes.toArray(new Handler[routes.size()]));
     }
 
-    private Chain createRoutes(final Chain chain, final Api api) {
-        return createRoutes(chain, api, api.resources());
+    private List<Handler> createRoutes(final Api api) {
+        return createRoutes(api, api.resources());
     }
 
-    private Chain createRoutes(final Chain chain, final Api api, final List<Resource> resources) {
+    private List<Handler> createRoutes(final Api api, final List<Resource> resources) {
+        final List<Handler> routes = new ArrayList<>();
+
         for (final Resource resource : resources) {
             final String ramlPath = resource.resourcePath().substring(1); // remove leading "/"
             final String ratpackPath = Pattern.compile("\\{(.*)\\}").matcher(ramlPath).replaceAll(":$1");
 
-            chain.path(ratpackPath, new Route(api, resource));
+            routes.add(Handlers.path(ratpackPath, new Route(api, resource)));
 
-            createRoutes(chain, api, resource.resources());
+            routes.addAll(createRoutes(api, resource.resources()));
         }
-        return chain;
+        return routes;
     }
+
 
     static class Route implements Handler {
         private final static Logger LOG = LoggerFactory.getLogger(Route.class);
