@@ -79,10 +79,10 @@ class RamlRouter implements Action<Chain> {
             final Optional<Method> ramlMethod = resource.methods().stream().filter(m -> m.method().equals(method)).findFirst();
             if (ramlMethod.isPresent()) {
                 switch (mode(ctx)) {
-                    case "proxy" :
+                    case proxy :
                         proxyRequest(ctx, request);
                         break;
-                    default:
+                    case example:
                         sendExample(ctx, ramlMethod);
                         break;
                 }
@@ -110,11 +110,11 @@ class RamlRouter implements Action<Chain> {
             }
         }
 
-        private String mode(final Context ctx) {
+        private RambleMode mode(final Context ctx) {
             final Headers headers = ctx.getRequest().getHeaders();
             return Optional.ofNullable(headers.get(MODE_HEADER))
-                    .map(String::toLowerCase)
-                    .orElse("proxy");
+                    .map(RambleMode::valueOf)
+                    .orElse(RambleMode.example);
         }
 
         private URI proxiedUri(final Context ctx) {

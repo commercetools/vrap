@@ -1,5 +1,6 @@
 package ramble;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import org.raml.v2.api.model.v10.api.Api;
 import org.raml.v2.api.model.v10.methods.Method;
@@ -84,13 +85,19 @@ class RambleExtensionHandler implements Handler {
 
     private static class ResourceExtensionMethod {
         private final String method;
+        private final String modes;
 
         public ResourceExtensionMethod(final String method) {
             this.method = method;
+            this.modes = Joiner.on(", ").join(RambleMode.values());
         }
 
         public String getMethod() {
             return method;
+        }
+
+        public String getModes() {
+            return modes;
         }
     }
 }
