@@ -6,30 +6,6 @@ baseUri: http://localhost:5050/api
 mediaType:
     application/json
 
-/artists:
-    get:
-        responses:
-            200:
-                body:
-                    application/json:
-                        example: {"name": "Prince"}
-
-/publishers:
-    get:
-        responses:
-            200:
-                body:
-                    application/json:
-                        example: {"name": "albert"}
-
-/lawyers:
-    get:
-        queryParameters:
-            name: string
-        responses:
-            200:
-                body:
-
 /songs:
   description: Collection of available songs in Jukebox
   get:
