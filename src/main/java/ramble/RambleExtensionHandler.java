@@ -53,7 +53,7 @@ class RambleExtensionHandler implements Handler {
         for (final Resource resource : resources) {
             final List<String> methods = resource.methods().stream().map(Method::method).collect(Collectors.toList());
 
-            result.add(new ResourceExtension(resource.resourcePath(), methods, currentIndent));
+            result.add(new ResourceExtension(resource.relativeUri().value(), methods, currentIndent));
             result.addAll(resourceExtensions(resource.resources(), currentIndent + "    "));
         }
         return result;
