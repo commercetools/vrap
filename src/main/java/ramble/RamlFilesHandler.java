@@ -26,23 +26,20 @@ import static ratpack.handlebars.Template.handlebarsTemplate;
 class RamlFilesHandler implements Handler {
     private final static Logger LOG = LoggerFactory.getLogger(RamlFilesHandler.class);
 
-    private final Api api;
-    private final Path ramlFile;
-    private final Path baseDir;
     private final FileContentModifier contentModifier;
 
-    public RamlFilesHandler(final Api api, final Path ramlFile, final FileContentModifier contentModifier) {
-        this.api = api;
-        this.ramlFile = ramlFile;
-        this.baseDir = ramlFile.getParent();
+    public RamlFilesHandler(final FileContentModifier contentModifier) {
         this.contentModifier = contentModifier;
     }
 
     @Override
     public void handle(final Context ctx) throws Exception {
+        final RamlModelRepository ramlModelRepository = ctx.get(RamlModelRepository.class);
+        final Path filePath = ramlModelRepository.getFilePath();
+        final Path parent = ramlModelRepository.getParent();
         final String path = ctx.getPathBinding().getPastBinding();
 
-        final Path resolvedFilePath = path.isEmpty() ? ramlFile : baseDir.resolve(path).normalize();
+        final Path resolvedFilePath = path.isEmpty() ? filePath : parent.resolve(path).normalize();
         final File file = resolvedFilePath.toFile();
         if (file.exists()) {
             final String content;
@@ -69,6 +66,8 @@ class RamlFilesHandler implements Handler {
     }
 
     private void renderHtml(final Context ctx, final String fileName, final String content) {
+        final RamlModelRepository ramlModelRepository = ctx.get(RamlModelRepository.class);
+        final Api api = ramlModelRepository.getApi();
         String contentWithIncludeLinks = content.replaceAll("(!include\\s*)(\\S*)", "$1<a class=\"hljs-string\" href=\"$2\">$2</a>");
         final ImmutableMap<String, String> model =
                 ImmutableMap.of("fileName", fileName,

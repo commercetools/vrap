@@ -1,5 +1,6 @@
 package ramble;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import org.raml.v2.api.model.v10.api.Api;
 import org.raml.v2.api.model.v10.methods.Method;
@@ -22,26 +23,23 @@ import static ratpack.handlebars.Template.handlebarsTemplate;
 class RambleExtensionHandler implements Handler {
     private final static Logger LOG = LoggerFactory.getLogger(RambleExtensionHandler.class);
 
-    private final Api api;
-    private final Path ramlFile;
-
-    public RambleExtensionHandler(final Api api, final Path ramlFile) {
-        this.api = api;
-        this.ramlFile = ramlFile;
-    }
-
     @Override
     public void handle(final Context ctx) throws Exception {
+        final RamlModelRepository ramlModelRepository = ctx.get(RamlModelRepository.class);
+        final Api api = ramlModelRepository.getApi();
         final String path = ctx.getPathBinding().getPastBinding();
 
         if (path.equals("Ramble-Extension.raml")) {
+            final Path filePath = ramlModelRepository.getFilePath();
             List<ResourceExtension> resourceExtensions = resourceExtensions(api.resources(), "");
             final ImmutableMap<String, Object> model =
-                    ImmutableMap.of("fileName", ramlFile.getFileName(),
+                    ImmutableMap.of("fileName", filePath.getFileName(),
                             "queryParams", ctx.getRequest().getQuery(),
                             "resourceExtensions", resourceExtensions);
 
-            ctx.render(handlebarsTemplate(model, "api-raml/Ramble-Extension.raml"));
+            ctx.byContent(byContentSpec -> byContentSpec
+                    .html(() -> ctx.render(handlebarsTemplate(model, "api-raml/Ramble-Extension.html")))
+                    .noMatch(() -> ctx.render(handlebarsTemplate(model, "api-raml/Ramble-Extension.raml"))));
         } else {
             ctx.next();
         }
@@ -52,7 +50,7 @@ class RambleExtensionHandler implements Handler {
         for (final Resource resource : resources) {
             final List<String> methods = resource.methods().stream().map(Method::method).collect(Collectors.toList());
 
-            result.add(new ResourceExtension(resource.resourcePath(), methods, currentIndent));
+            result.add(new ResourceExtension(resource.relativeUri().value(), methods, currentIndent));
             result.addAll(resourceExtensions(resource.resources(), currentIndent + "    "));
         }
         return result;
@@ -84,13 +82,19 @@ class RambleExtensionHandler implements Handler {
 
     private static class ResourceExtensionMethod {
         private final String method;
+        private final String modes;
 
         public ResourceExtensionMethod(final String method) {
             this.method = method;
+            this.modes = Joiner.on(", ").join(RambleMode.values());
         }
 
         public String getMethod() {
             return method;
+        }
+
+        public String getModes() {
+            return modes;
         }
     }
 }
