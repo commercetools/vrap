@@ -28,6 +28,7 @@ class WebJarHandler implements Handler {
     private final static Logger LOG = LoggerFactory.getLogger(WebJarHandler.class);
 
     private static final String WEBJAR_ROOT = "META-INF/resources/webjars";
+    private static final String DEFAULT_INCLUDE_PATH = "dist";
 
     private final FileSystem jarFileSystem;
     private final String modueName;
@@ -35,6 +36,10 @@ class WebJarHandler implements Handler {
     private final String includePath;
 
     private final static ConcurrentMap<URI, FileSystem> JAR_FILE_SYSTEMS = new ConcurrentHashMap<>();
+
+    public WebJarHandler(final String moduleName, final String version) {
+        this(moduleName, version, DEFAULT_INCLUDE_PATH);
+    }
 
     public WebJarHandler(final String moduleName, final String version, final String includePath) {
         this.modueName = moduleName;
