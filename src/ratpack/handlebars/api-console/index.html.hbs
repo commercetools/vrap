@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>API Console</title>
-    <link href="dist/styles/api-console-light-theme.css" rel="stylesheet" class="theme">
+    <link href="styles/api-console-light-theme.css" rel="stylesheet" class="theme">
 </head>
 <body ng-app="ramlConsoleApp" ng-cloak class="raml-console-body">
 <raml-console-loader src="/{{ramlPath}}{{queryParams}}"
                      options="{ resourcesCollapsed: true, disableRamlClientGenerator: true }"></raml-console-loader>
-<script src="dist/livereload.js?host=localhost&port=5050"></script>
-<script src="dist/scripts/api-console-vendor.js"></script>
-<script src="dist/scripts/api-console.js"></script>
+<script src="livereload.js?host=localhost&port=5050"></script>
+<script src="scripts/api-console-vendor.js"></script>
+<script src="scripts/api-console.js"></script>
 <script src="assets/client-oauth2.js"></script>
 <script src="assets/livequery.min.js"></script>
 <script src="assets/commercetools.js"></script>

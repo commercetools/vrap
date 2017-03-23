@@ -32,12 +32,14 @@ class WebJarHandler implements Handler {
     private final FileSystem jarFileSystem;
     private final String modueName;
     private final String version;
+    private final String includePath;
 
     private final static ConcurrentMap<URI, FileSystem> JAR_FILE_SYSTEMS = new ConcurrentHashMap<>();
 
-    public WebJarHandler(final String moduleName, final String version) {
+    public WebJarHandler(final String moduleName, final String version, final String includePath) {
         this.modueName = moduleName;
         this.version = version;
+        this.includePath = includePath;
         final URI uri = jarUri(moduleName, version);
         this.jarFileSystem = JAR_FILE_SYSTEMS.computeIfAbsent(uri, this::initJarFileSystem);
     }
@@ -62,7 +64,8 @@ class WebJarHandler implements Handler {
         final PathBinding pathBinding = ctx.getPathBinding();
         final String path = pathBinding.getPastBinding();
 
-        final Path resourcePath = jarFileSystem.getPath(WEBJAR_ROOT, modueName, version, path);
+        final Path resourcePath = jarFileSystem.getPath(WEBJAR_ROOT, modueName, version, includePath, path);
+
         if (Files.exists(resourcePath)) {
             ctx.render(resourcePath);
         } else {

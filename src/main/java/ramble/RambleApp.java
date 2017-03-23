@@ -44,8 +44,8 @@ public class RambleApp {
                         .prefix("api-console", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
                                         new ApiConsoleHandler(filePath),
-                                        new WebJarHandler("api-console", "3.0.4"),
-                                        new WebJarHandler("livereload-js", "2.2.2"),
+                                        new WebJarHandler("api-console", "3.0.4", "dist"),
+                                        new WebJarHandler("livereload-js", "2.2.2", "dist"),
                                         Handlers.files(ctx.getServerConfig(), Action.noop()))))
                         .prefix("api", chain1 -> chain1.all(new RamlRouter()))
                         .prefix("api-raml", chain1 ->
