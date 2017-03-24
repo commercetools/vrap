@@ -7,7 +7,6 @@ import ratpack.guice.Guice;
 import ratpack.handlebars.HandlebarsModule;
 import ratpack.handling.Handlers;
 import ratpack.server.RatpackServer;
-import ratpack.websocket.WebSockets;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -51,7 +50,7 @@ public class RambleApp {
                         .prefix("api-raml", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
                                         new RambleExtensionHandler(),
-                                        new RamlFilesHandler(contentModifier))))
-                        .get("livereload", ctx -> WebSockets.websocket(ctx, new LivereloadHandler(ctx, filePath)))));
+                                        new RamlFilesHandler(contentModifier))))));
+                        // .get("livereload", ctx -> WebSockets.websocket(ctx, new LivereloadHandler(ctx, filePath)))));
     }
 }
