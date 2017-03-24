@@ -32,10 +32,12 @@ class RambleExtensionHandler implements Handler {
         if (path.equals("Ramble-Extension.raml")) {
             final Path filePath = ramlModelRepository.getFilePath();
             List<ResourceExtension> resourceExtensions = resourceExtensions(api.resources(), "");
+            final Integer port = ctx.getServerConfig().getPort();
             final ImmutableMap<String, Object> model =
                     ImmutableMap.of("fileName", filePath.getFileName(),
                             "queryParams", ctx.getRequest().getQuery(),
-                            "resourceExtensions", resourceExtensions);
+                            "resourceExtensions", resourceExtensions,
+                            "rambleUri", "http://localhost:" + port.toString());
 
             ctx.byContent(byContentSpec -> byContentSpec
                     .html(() -> ctx.render(handlebarsTemplate(model, "api-raml/Ramble-Extension.html")))
