@@ -10,12 +10,12 @@ import ratpack.path.PathBinding;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -30,8 +30,14 @@ class WebJarHandler implements Handler {
     private static final String WEBJAR_ROOT = "META-INF/resources/webjars";
     private static final String DEFAULT_INCLUDE_PATH = "dist";
 
-    private final FileSystem jarFileSystem;
-    private final String modueName;
+    /**
+     * If ramble is running from a shadow/flat jar, the webjars will be directly available on the classpath.
+     *
+     * In this case the jar file system will be empty.
+     */
+    private final Optional<FileSystem> jarFileSystem;
+
+    private final String moduleName;
     private final String version;
     private final String includePath;
 
@@ -42,11 +48,30 @@ class WebJarHandler implements Handler {
     }
 
     public WebJarHandler(final String moduleName, final String version, final String includePath) {
-        this.modueName = moduleName;
+        this.moduleName = moduleName;
         this.version = version;
         this.includePath = includePath;
-        final URI uri = jarUri(moduleName, version);
-        this.jarFileSystem = JAR_FILE_SYSTEMS.computeIfAbsent(uri, this::initJarFileSystem);
+        final Optional<URI> jarUri = jarUri(moduleName, version);
+        this.jarFileSystem = jarUri.map(uri -> JAR_FILE_SYSTEMS.computeIfAbsent(uri, this::initJarFileSystem));
+    }
+
+    /**
+     * If ramble is running from a shadow/flat jar, the webjars will be directly available on the classpath.
+     * In this case the jar file system will be empty and the returned uri optional uri will be empty.
+     *
+     * @param moduleName the module name
+     * @param version the version
+     *
+     * @return the optional jar uri
+     */
+    private Optional<URI> jarUri(final String moduleName, final String version) {
+        final String webJarPath = Joiner.on("/").join(WEBJAR_ROOT, moduleName, version);
+        final String resourceUrl = Resources.getResource(webJarPath).toString();
+        final String codeLocationUrl = "jar:" + getClass().getProtectionDomain().getCodeSource().getLocation().toString();
+
+        return resourceUrl.startsWith(codeLocationUrl) ?
+                Optional.empty() :
+                Optional.of(URI.create(resourceUrl.split("!")[0]));
     }
 
     private FileSystem initJarFileSystem(final URI uri) {
@@ -57,19 +82,15 @@ class WebJarHandler implements Handler {
         }
     }
 
-    private URI jarUri(final String moduleName, final String version) {
-        final String webJarPath = Joiner.on("/").join(WEBJAR_ROOT, moduleName, version);
-        final URL resource = Resources.getResource(webJarPath);
-        final String[] split = resource.toString().split("!");
-        return URI.create(split[0]);
-    }
-
     @Override
     public void handle(final Context ctx) throws Exception {
         final PathBinding pathBinding = ctx.getPathBinding();
         final String path = pathBinding.getPastBinding();
+        final String resourePathStr = Joiner.on("/").join(WEBJAR_ROOT, moduleName, version, includePath, path);
 
-        final Path resourcePath = jarFileSystem.getPath(WEBJAR_ROOT, modueName, version, includePath, path);
+        final Path resourcePath = jarFileSystem.isPresent() ?
+                jarFileSystem.map(fs -> fs.getPath(resourePathStr)).get() :
+                ctx.getFileSystemBinding().file(resourePathStr);
 
         if (Files.exists(resourcePath)) {
             ctx.render(resourcePath);

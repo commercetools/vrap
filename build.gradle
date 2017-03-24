@@ -4,12 +4,14 @@ buildscript {
     }
     dependencies {
         classpath "io.ratpack:ratpack-gradle:1.4.5"
+        classpath "com.github.jengelman.gradle.plugins:shadow:1.2.3"
     }
 }
 
 apply plugin: 'java'
 apply plugin: "io.ratpack.ratpack-java"
 apply plugin: "idea"
+apply plugin: "com.github.johnrengelman.shadow"
 
 if (!JavaVersion.current().java8Compatible) {
     throw new IllegalStateException("Must be built with Java 8 or higher")
@@ -40,4 +42,9 @@ dependencies {
     testCompile "org.spockframework:spock-core:1.0-groovy-2.4"
 }
 
+run {
+    if (project.hasProperty("cliArgs")) {
+        args(cliArgs.split(","))
+    }
+}
 mainClassName = "ramble.RambleApp"
