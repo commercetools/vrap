@@ -9,15 +9,12 @@ import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.resources.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ratpack.func.Action;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 import ratpack.handling.Handlers;
 import ratpack.http.Headers;
 import ratpack.http.Request;
 import ratpack.http.client.HttpClient;
-import ratpack.http.client.ReceivedResponse;
-import ratpack.http.client.RequestSpec;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -47,8 +44,18 @@ class RamlRouter implements Handler {
         final List<Handler> routes = new ArrayList<>();
 
         for (final Resource resource : resources) {
-            final String ramlPath = resource.resourcePath().substring(1); // remove leading "/"
-            final String ratpackPath = Pattern.compile("\\{(.*)\\}").matcher(ramlPath).replaceAll(":$1");
+            String ramlPath = resource.resourcePath().substring(1); // remove leading "/"
+
+            for (TypeDeclaration uriP : resource.uriParameters())  {
+                ramlPath = ramlPath.replaceAll("\\{" + uriP.name() + "\\}", ":" + uriP.name());
+            }
+            final String ratpackPath ;
+            if (ramlPath.contains("{") && ramlPath.contains("}")) {
+                LOG.warn("Resource path contains unspecified uri parameter: {}", ramlPath);
+                ratpackPath = Pattern.compile("\\{([^}]*)\\}").matcher(ramlPath).replaceAll(":$1");
+            } else {
+                ratpackPath = ramlPath;
+            }
 
             routes.add(Handlers.path(ratpackPath, new Route(api, resource)));
 
@@ -80,7 +87,7 @@ class RamlRouter implements Handler {
             final Optional<Method> ramlMethod = resource.methods().stream().filter(m -> m.method().equals(method)).findFirst();
             if (ramlMethod.isPresent()) {
                 switch (mode(ctx)) {
-                    case proxy :
+                    case proxy:
                         proxyRequest(ctx, request);
                         break;
                     case example:
@@ -95,7 +102,11 @@ class RamlRouter implements Handler {
         private void proxyRequest(final Context ctx, final Request request) {
             final URI uri = proxiedUri(ctx);
             final HttpClient httpClient = ctx.get(HttpClient.class);
-            httpClient.request(uri, toRequestSpec(request)).then(sendResponse(ctx));
+            request.getBody().flatMap(incoming -> httpClient.requestStream(uri, spec -> {
+                spec.getBody().buffer(incoming.getBuffer());
+                spec.getHeaders().copy(request.getHeaders());
+                spec.method(request.getMethod());
+            })).then(streamedResponse -> streamedResponse.forwardTo(ctx.getResponse()));
         }
 
 
@@ -126,19 +137,7 @@ class RamlRouter implements Handler {
             final String uriStr = baseUri.endsWith("/") ?
                     baseUri + boundPath :
                     Joiner.on("/").join(baseUri, boundPath);
-                return URI.create(uriStr);
-        }
-
-        private Action<ReceivedResponse> sendResponse(final Context ctx) {
-            return response -> ctx.getResponse().send(response.getBody().getBuffer());
-        }
-
-        private Action<RequestSpec> toRequestSpec(final Request request) {
-            return r -> {
-                final Headers headers = request.getHeaders();
-                r.getHeaders().copy(headers).remove(MODE_HEADER).add("Accept-Encoding", "gzip,deflate");
-                r.method(request.getMethod());
-            };
+            return URI.create(uriStr);
         }
     }
 }
