@@ -11,7 +11,6 @@ import ratpack.server.RatpackServer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.function.Function;
 
 import static ratpack.handlebars.Template.handlebarsTemplate;
 
@@ -29,8 +28,7 @@ public class RambleApp {
         final Path filePath = Paths.get(args[0]).toAbsolutePath();
         final Path fileName = filePath.getFileName();
 
-        final Function<String, String> baseUriModifier = content -> content.replaceAll("(baseUri:\\s*)\\S*", "$1http://localhost:5050/api");
-        final FileContentModifier contentModifier = new FileContentModifier(fileName.toString(), baseUriModifier);
+        final FileContentModifier contentModifier = new FileContentModifier(fileName.toString());
         final List<Path> watchFiles = new IncludeCollector(filePath).collect();
         watchFiles.add(filePath);
 

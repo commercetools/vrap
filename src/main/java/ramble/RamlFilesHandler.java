@@ -68,11 +68,14 @@ class RamlFilesHandler implements Handler {
     private void renderHtml(final Context ctx, final String fileName, final String content) {
         final RamlModelRepository ramlModelRepository = ctx.get(RamlModelRepository.class);
         final Api api = ramlModelRepository.getApi();
+        final Integer port = ctx.getServerConfig().getPort();
+
         String contentWithIncludeLinks = content.replaceAll("(!include\\s*)(\\S*)", "$1<a class=\"hljs-string\" href=\"$2\">$2</a>");
         final ImmutableMap<String, String> model =
                 ImmutableMap.of("fileName", fileName,
                         "fileContent", contentWithIncludeLinks,
-                        "apiTitle", api.title().value());
+                        "apiTitle", api.title().value(),
+                        "rambleUri", "http://localhost:" + port.toString());
         ctx.render(handlebarsTemplate(model, "api-raml/raml.html"));
     }
 }
