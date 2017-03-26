@@ -54,7 +54,12 @@ class RamlRouter implements Handler {
             final String ratpackPath = mapToRatpackPath(resource);
 
             for (final Method method : resource.methods()) {
-                routes.add(Handlers.path(ratpackPath, new Route(api, resource, method)));
+                final Route route = new Route(api, resource, method);
+                final String methodName = method.method();
+
+                routes.add(Handlers.path(ratpackPath,
+                        ctx -> ctx.byMethod(byMethod ->
+                            byMethod.named(methodName, () -> route.handle(ctx)))));
             }
 
             routes.addAll(createRoutes(api, resource.resources()));
