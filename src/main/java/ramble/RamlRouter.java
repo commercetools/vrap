@@ -36,60 +36,6 @@ class RamlRouter implements Handler {
     public void handle(final Context ctx) throws Exception {
         final RamlModelRepository ramlModelRepository = ctx.get(RamlModelRepository.class);
         ctx.insert(ramlModelRepository.getRoutes());
-    private static List<Handler> createRoutes(final Api api) {
-        return createRoutes(api, api.resources());
-    }
-
-    private static List<Handler> createRoutes(final Api api, final List<Resource> resources) {
-        final List<Handler> routes = new ArrayList<>();
-
-        for (final Resource resource : resources) {
-            final String ratpackPath = mapToRatpackPath(resource);
-
-            final Map<Method, Handler> methodHandlers = new HashMap<>();
-
-            for (final Method method : resource.methods()) {
-                if (method.body().isEmpty()) {
-                    final Route route = new Route(api, resource, method, Optional.empty());
-                    methodHandlers.put(method, route);
-                }
-                else {
-                    final Map<String, Handler> contentTypeHandlers = new HashMap<>();
-
-                    for (final TypeDeclaration bodyDeclaration : method.body()) {
-                        final Route route = new Route(api, resource, method, Optional.of(bodyDeclaration));
-                        contentTypeHandlers.put(bodyDeclaration.name(), route);
-                    }
-                    methodHandlers.put(method, Handlers.chain(ctx ->
-                            ctx.byContent(byContentSpec -> contentTypeHandlers.entrySet()
-                                    .forEach(e -> byContentSpec.type(e.getKey(), () -> e.getValue().handle(ctx))))));
-                }
-            }
-            routes.add(Handlers.path(ratpackPath, ctx -> ctx.byMethod(byMethodSpec ->
-                    methodHandlers.entrySet().
-                            forEach(e -> byMethodSpec.named(e.getKey().method(), () -> e.getValue().handle(ctx))))));
-
-            routes.addAll(createRoutes(api, resource.resources()));
-        }
-        return routes;
-    }
-
-    private static String mapToRatpackPath(final Resource resource) {
-        String ramlPath = resource.resourcePath().substring(1); // remove leading "/"
-
-        for (final TypeDeclaration uriParamDeclaration : resource.uriParameters())  {
-            ramlPath = ramlPath.replaceAll("\\{" + uriParamDeclaration.name() + "\\}", ":" + uriParamDeclaration.name());
-        }
-        final String ratpackPath;
-
-        if (ramlPath.contains("{") && ramlPath.contains("}")) {
-            LOG.warn("Resource path contains unspecified uri parameter: {}", ramlPath);
-            ratpackPath = Pattern.compile("\\{([^}]*)\\}").matcher(ramlPath).replaceAll(":$1");
-        } else {
-            ratpackPath = ramlPath;
-        }
-
-        return ratpackPath;
     }
 
     enum ValidationKind {
@@ -124,7 +70,7 @@ class RamlRouter implements Handler {
     }
 
     static class Routes {
-        private final Logger LOG = LoggerFactory.getLogger(RamlRouter.class);
+        private final static Logger LOG = LoggerFactory.getLogger(RamlRouter.class);
         private final Handler[] routes;
 
         public Routes(final Api api) {
@@ -136,6 +82,7 @@ class RamlRouter implements Handler {
             return routes;
         }
 
+
         private List<Handler> createRoutes(final Api api) {
             return createRoutes(api, api.resources());
         }
@@ -146,21 +93,35 @@ class RamlRouter implements Handler {
             for (final Resource resource : resources) {
                 final String ratpackPath = mapToRatpackPath(resource);
 
-                for (final Method method : resource.methods()) {
-                    final RamlRouter.Route route = new RamlRouter.Route(api, resource, method);
-                    final String methodName = method.method();
+                final Map<Method, Handler> methodHandlers = new HashMap<>();
 
-                    routes.add(Handlers.path(ratpackPath,
-                            ctx -> ctx.byMethod(byMethod ->
-                                    byMethod.named(methodName, () -> route.handle(ctx)))));
+                for (final Method method : resource.methods()) {
+                    if (method.body().isEmpty()) {
+                        final Route route = new Route(api, resource, method, Optional.empty());
+                        methodHandlers.put(method, route);
+                    }
+                    else {
+                        final Map<String, Handler> contentTypeHandlers = new HashMap<>();
+
+                        for (final TypeDeclaration bodyDeclaration : method.body()) {
+                            final Route route = new Route(api, resource, method, Optional.of(bodyDeclaration));
+                            contentTypeHandlers.put(bodyDeclaration.name(), route);
+                        }
+                        methodHandlers.put(method, Handlers.chain(ctx ->
+                                ctx.byContent(byContentSpec -> contentTypeHandlers.entrySet()
+                                        .forEach(e -> byContentSpec.type(e.getKey(), () -> e.getValue().handle(ctx))))));
+                    }
                 }
+                routes.add(Handlers.path(ratpackPath, ctx -> ctx.byMethod(byMethodSpec ->
+                        methodHandlers.entrySet().
+                                forEach(e -> byMethodSpec.named(e.getKey().method(), () -> e.getValue().handle(ctx))))));
 
                 routes.addAll(createRoutes(api, resource.resources()));
             }
             return routes;
         }
 
-        private String mapToRatpackPath(final Resource resource) {
+        private static String mapToRatpackPath(final Resource resource) {
             String ramlPath = resource.resourcePath().substring(1); // remove leading "/"
 
             for (final TypeDeclaration uriParamDeclaration : resource.uriParameters())  {
