@@ -19,10 +19,7 @@ import ratpack.http.client.HttpClient;
 import ratpack.path.PathTokens;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -33,11 +30,66 @@ import static ratpack.jackson.Jackson.json;
  * This class routes request for raml resource to a raml route.
  */
 class RamlRouter implements Handler {
+    private final static Logger LOG = LoggerFactory.getLogger(RamlRouter.class);
 
     @Override
     public void handle(final Context ctx) throws Exception {
         final RamlModelRepository ramlModelRepository = ctx.get(RamlModelRepository.class);
         ctx.insert(ramlModelRepository.getRoutes());
+    private static List<Handler> createRoutes(final Api api) {
+        return createRoutes(api, api.resources());
+    }
+
+    private static List<Handler> createRoutes(final Api api, final List<Resource> resources) {
+        final List<Handler> routes = new ArrayList<>();
+
+        for (final Resource resource : resources) {
+            final String ratpackPath = mapToRatpackPath(resource);
+
+            final Map<Method, Handler> methodHandlers = new HashMap<>();
+
+            for (final Method method : resource.methods()) {
+                if (method.body().isEmpty()) {
+                    final Route route = new Route(api, resource, method, Optional.empty());
+                    methodHandlers.put(method, route);
+                }
+                else {
+                    final Map<String, Handler> contentTypeHandlers = new HashMap<>();
+
+                    for (final TypeDeclaration bodyDeclaration : method.body()) {
+                        final Route route = new Route(api, resource, method, Optional.of(bodyDeclaration));
+                        contentTypeHandlers.put(bodyDeclaration.name(), route);
+                    }
+                    methodHandlers.put(method, Handlers.chain(ctx ->
+                            ctx.byContent(byContentSpec -> contentTypeHandlers.entrySet()
+                                    .forEach(e -> byContentSpec.type(e.getKey(), () -> e.getValue().handle(ctx))))));
+                }
+            }
+            routes.add(Handlers.path(ratpackPath, ctx -> ctx.byMethod(byMethodSpec ->
+                    methodHandlers.entrySet().
+                            forEach(e -> byMethodSpec.named(e.getKey().method(), () -> e.getValue().handle(ctx))))));
+
+            routes.addAll(createRoutes(api, resource.resources()));
+        }
+        return routes;
+    }
+
+    private static String mapToRatpackPath(final Resource resource) {
+        String ramlPath = resource.resourcePath().substring(1); // remove leading "/"
+
+        for (final TypeDeclaration uriParamDeclaration : resource.uriParameters())  {
+            ramlPath = ramlPath.replaceAll("\\{" + uriParamDeclaration.name() + "\\}", ":" + uriParamDeclaration.name());
+        }
+        final String ratpackPath;
+
+        if (ramlPath.contains("{") && ramlPath.contains("}")) {
+            LOG.warn("Resource path contains unspecified uri parameter: {}", ramlPath);
+            ratpackPath = Pattern.compile("\\{([^}]*)\\}").matcher(ramlPath).replaceAll(":$1");
+        } else {
+            ratpackPath = ramlPath;
+        }
+
+        return ratpackPath;
     }
 
     enum ValidationKind {
@@ -134,11 +186,13 @@ class RamlRouter implements Handler {
         private final Api api;
         private final Resource resource;
         private final Method method;
+        private final Optional<TypeDeclaration> bodyDeclaration;
 
-        public Route(final Api api, final Resource resource, final Method method) {
+        public Route(final Api api, final Resource resource, final Method method, final Optional<TypeDeclaration> bodyDeclaration) {
             this.api = api;
             this.resource = resource;
             this.method = method;
+            this.bodyDeclaration = bodyDeclaration;
         }
 
         @Override
