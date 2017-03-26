@@ -1,6 +1,7 @@
 package ramble;
 
 import com.google.common.base.Joiner;
+import org.raml.v2.api.model.common.ValidationResult;
 import org.raml.v2.api.model.v10.api.Api;
 import org.raml.v2.api.model.v10.bodies.Response;
 import org.raml.v2.api.model.v10.datamodel.ExampleSpec;
@@ -15,12 +16,18 @@ import ratpack.handling.Handlers;
 import ratpack.http.Headers;
 import ratpack.http.Request;
 import ratpack.http.client.HttpClient;
+import ratpack.path.PathTokens;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static ratpack.jackson.Jackson.json;
 
 /**
  * This class routes request for raml resource to a raml route.
@@ -64,6 +71,36 @@ class RamlRouter implements Handler {
         return routes;
     }
 
+    enum ValidationKind {
+        uriParameter,
+        queryParameter,
+        body,
+        response;
+    }
+
+    static class ValidationError {
+        private final ValidationKind kind;
+        private final String context;
+        private final String message;
+
+        public ValidationError(final ValidationKind kind, final String context, final String message) {
+            this.kind = kind;
+            this.context = context;
+            this.message = message;
+        }
+
+        public ValidationKind getKind() {
+            return kind;
+        }
+
+        public String getContext() {
+            return context;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+    }
 
     static class Route implements Handler {
         private final static Logger LOG = LoggerFactory.getLogger(Route.class);
@@ -86,18 +123,80 @@ class RamlRouter implements Handler {
 
             final Optional<Method> ramlMethod = resource.methods().stream().filter(m -> m.method().equals(method)).findFirst();
             if (ramlMethod.isPresent()) {
-                switch (mode(ctx)) {
-                    case proxy:
-                        proxyRequest(ctx, request);
-                        break;
-                    case example:
-                        sendExample(ctx, ramlMethod);
-                        break;
+                final List<ValidationError> validationErrors = validateRequest(ctx);
+                if (validationErrors.isEmpty()) {
+                    switch (mode(ctx)) {
+                        case proxy:
+                            proxyRequest(ctx, request);
+                            break;
+                        case example:
+                            sendExample(ctx, ramlMethod);
+                            break;
+                    }
+                } else {
+                    ctx.getResponse().status(400);
+                    ctx.render(json(validationErrors));
                 }
             } else {
-                ctx.next();
+                ctx.getResponse().status(405).send("Method not allowed");
             }
         }
+
+        private List<ValidationError> validateRequest(final Context context) {
+            final List<ValidationError> errors = new ArrayList<>();
+
+            errors.addAll(validateUriParameters(context.getAllPathTokens()));
+            errors.addAll(validateQueryParameters(context.getRequest()));
+
+            return errors;
+        }
+
+        private List<ValidationError> validateUriParameters(final PathTokens allPathTokens) {
+            final List<ValidationError> validationResults = new ArrayList<>();
+
+            final List<TypeDeclaration> requiredUriParameters = resource.uriParameters();
+
+            for (final TypeDeclaration uriParameter : requiredUriParameters) {
+                final String name = uriParameter.name();
+                if (allPathTokens.containsKey(name)) {
+                    final List<ValidationResult> validate = uriParameter.validate(allPathTokens.get(name));
+                    List<ValidationError> results = validate.stream()
+                            .map(r -> new ValidationError(ValidationKind.uriParameter, name, r.getMessage()))
+                            .collect(Collectors.toList());
+                    validationResults.addAll(results);
+                } else if (uriParameter.required()) {
+                    validationResults.add(new ValidationError(ValidationKind.uriParameter, uriParameter.name(), "Required uri parameter missing"));
+                }
+            }
+            return validationResults;
+        }
+
+        private List<ValidationError> validateQueryParameters(final Request request) {
+            final List<ValidationError> validationResults = new ArrayList<>();
+
+            final Map<String, TypeDeclaration> queryParameters = resource.methods().stream()
+                    .filter(method -> method.method().equalsIgnoreCase(request.getMethod().getName())) // TODO: can be removed if the raml router knows its method
+                    .findFirst().get()
+                    .queryParameters().stream()
+                    .collect(Collectors.toMap(TypeDeclaration::name, Function.identity()));
+
+            for (final String paramName : request.getQueryParams().keySet()) {
+                if (queryParameters.containsKey(paramName)) {
+                    final TypeDeclaration queryParamDeclaration = queryParameters.get(paramName);
+                    for (final String paramValue : request.getQueryParams().getAll(paramName)) {
+                        final List<ValidationResult> validate = queryParamDeclaration.validate(paramValue);
+                        final List<ValidationError> results = validate.stream()
+                                .map(r -> new ValidationError(ValidationKind.queryParameter, String.join("=", paramName, paramValue), r.getMessage()))
+                                .collect(Collectors.toList());
+                        validationResults.addAll(results);
+                    }
+                } else {
+                    validationResults.add(new ValidationError(ValidationKind.queryParameter, paramName, "Unknown query parameter"));
+                }
+            }
+            return validationResults;
+        }
+
 
         private void proxyRequest(final Context ctx, final Request request) {
             final URI uri = proxiedUri(ctx);

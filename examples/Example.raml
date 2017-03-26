@@ -37,6 +37,8 @@ mediaType:
                   ]
   /{songId}:
     description: Song entity
+    uriParameters:
+        songId: integer
     get:
       description: Get the song with `songId = {songId}`
       responses:
