@@ -51,24 +51,33 @@ class RamlRouter implements Handler {
         final List<Handler> routes = new ArrayList<>();
 
         for (final Resource resource : resources) {
-            String ramlPath = resource.resourcePath().substring(1); // remove leading "/"
+            final String ratpackPath = mapToRatpackPath(resource);
 
-            for (TypeDeclaration uriP : resource.uriParameters())  {
-                ramlPath = ramlPath.replaceAll("\\{" + uriP.name() + "\\}", ":" + uriP.name());
+            for (final Method method : resource.methods()) {
+                routes.add(Handlers.path(ratpackPath, new Route(api, resource, method)));
             }
-            final String ratpackPath ;
-            if (ramlPath.contains("{") && ramlPath.contains("}")) {
-                LOG.warn("Resource path contains unspecified uri parameter: {}", ramlPath);
-                ratpackPath = Pattern.compile("\\{([^}]*)\\}").matcher(ramlPath).replaceAll(":$1");
-            } else {
-                ratpackPath = ramlPath;
-            }
-
-            routes.add(Handlers.path(ratpackPath, new Route(api, resource)));
 
             routes.addAll(createRoutes(api, resource.resources()));
         }
         return routes;
+    }
+
+    private String mapToRatpackPath(final Resource resource) {
+        String ramlPath = resource.resourcePath().substring(1); // remove leading "/"
+
+        for (final TypeDeclaration uriParamDeclaration : resource.uriParameters())  {
+            ramlPath = ramlPath.replaceAll("\\{" + uriParamDeclaration.name() + "\\}", ":" + uriParamDeclaration.name());
+        }
+        final String ratpackPath;
+
+        if (ramlPath.contains("{") && ramlPath.contains("}")) {
+            LOG.warn("Resource path contains unspecified uri parameter: {}", ramlPath);
+            ratpackPath = Pattern.compile("\\{([^}]*)\\}").matcher(ramlPath).replaceAll(":$1");
+        } else {
+            ratpackPath = ramlPath;
+        }
+
+        return ratpackPath;
     }
 
     enum ValidationKind {
@@ -108,37 +117,33 @@ class RamlRouter implements Handler {
 
         private final Api api;
         private final Resource resource;
+        private final Method method;
 
-        public Route(final Api api, final Resource resource) {
+        public Route(final Api api, final Resource resource, final Method method) {
             this.api = api;
             this.resource = resource;
+            this.method = method;
         }
 
         @Override
         public void handle(final Context ctx) throws Exception {
             final Request request = ctx.getRequest();
-            final String method = request.getMethod().getName().toLowerCase();
             final String path = request.getPath();
             LOG.debug("Request path: {}", path);
 
-            final Optional<Method> ramlMethod = resource.methods().stream().filter(m -> m.method().equals(method)).findFirst();
-            if (ramlMethod.isPresent()) {
-                final List<ValidationError> validationErrors = validateRequest(ctx);
-                if (validationErrors.isEmpty()) {
-                    switch (mode(ctx)) {
-                        case proxy:
-                            proxyRequest(ctx, request);
-                            break;
-                        case example:
-                            sendExample(ctx, ramlMethod);
-                            break;
-                    }
-                } else {
-                    ctx.getResponse().status(400);
-                    ctx.render(json(validationErrors));
+            final List<ValidationError> validationErrors = validateRequest(ctx);
+            if (validationErrors.isEmpty()) {
+                switch (mode(ctx)) {
+                    case proxy:
+                        proxyRequest(ctx, request);
+                        break;
+                    case example:
+                        sendExample(ctx, method);
+                        break;
                 }
             } else {
-                ctx.getResponse().status(405).send("Method not allowed");
+                ctx.getResponse().status(400);
+                ctx.render(json(validationErrors));
             }
         }
 
@@ -174,10 +179,7 @@ class RamlRouter implements Handler {
         private List<ValidationError> validateQueryParameters(final Request request) {
             final List<ValidationError> validationResults = new ArrayList<>();
 
-            final Map<String, TypeDeclaration> queryParameters = resource.methods().stream()
-                    .filter(method -> method.method().equalsIgnoreCase(request.getMethod().getName())) // TODO: can be removed if the raml router knows its method
-                    .findFirst().get()
-                    .queryParameters().stream()
+            final Map<String, TypeDeclaration> queryParameters = method.queryParameters().stream()
                     .collect(Collectors.toMap(TypeDeclaration::name, Function.identity()));
 
             for (final String paramName : request.getQueryParams().keySet()) {
@@ -209,8 +211,8 @@ class RamlRouter implements Handler {
         }
 
 
-        private void sendExample(final Context ctx, final Optional<Method> ramlMethod) {
-            final Optional<Response> response = ramlMethod.get().responses().stream().findFirst();
+        private void sendExample(final Context ctx, final Method ramlMethod) {
+            final Optional<Response> response = ramlMethod.responses().stream().findFirst();
             final Optional<ExampleSpec> example = response.flatMap(r -> r.body().stream()
                     .findFirst()).map(TypeDeclaration::example);
 
