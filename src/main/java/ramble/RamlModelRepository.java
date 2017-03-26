@@ -6,6 +6,7 @@ import org.raml.v2.api.model.common.ValidationResult;
 import org.raml.v2.api.model.v10.api.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ratpack.handling.Handler;
 import ratpack.service.Service;
 import ratpack.service.StartEvent;
 
@@ -22,6 +23,7 @@ class RamlModelRepository implements Service {
 
     private final Path filePath;
     private RamlModelResult ramlModelResult;
+    private Handler[] routes;
 
     RamlModelRepository(final Path filePath) {
         this.filePath = filePath;
@@ -35,6 +37,7 @@ class RamlModelRepository implements Service {
                 LOG.error("{}", validationResult.toString());
             }
         }
+        routes = new RamlRouter.Routes(getApi()).getRoutes();
     }
 
     /**
@@ -73,6 +76,10 @@ class RamlModelRepository implements Service {
     @Nullable
     public Api getApi() {
         return ramlModelResult.getApiV10();
+    }
+
+    public Handler[] getRoutes() {
+        return routes;
     }
 
     public static RamlModelRepository of(final Path filePath) {

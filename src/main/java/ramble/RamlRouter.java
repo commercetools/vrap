@@ -33,56 +33,11 @@ import static ratpack.jackson.Jackson.json;
  * This class routes request for raml resource to a raml route.
  */
 class RamlRouter implements Handler {
-    private final Logger LOG = LoggerFactory.getLogger(RamlRouter.class);
 
     @Override
     public void handle(final Context ctx) throws Exception {
         final RamlModelRepository ramlModelRepository = ctx.get(RamlModelRepository.class);
-        final Api api = ramlModelRepository.getApi();
-        final List<Handler> routes = createRoutes(api);
-        ctx.insert(routes.toArray(new Handler[routes.size()]));
-    }
-
-    private List<Handler> createRoutes(final Api api) {
-        return createRoutes(api, api.resources());
-    }
-
-    private List<Handler> createRoutes(final Api api, final List<Resource> resources) {
-        final List<Handler> routes = new ArrayList<>();
-
-        for (final Resource resource : resources) {
-            final String ratpackPath = mapToRatpackPath(resource);
-
-            for (final Method method : resource.methods()) {
-                final Route route = new Route(api, resource, method);
-                final String methodName = method.method();
-
-                routes.add(Handlers.path(ratpackPath,
-                        ctx -> ctx.byMethod(byMethod ->
-                            byMethod.named(methodName, () -> route.handle(ctx)))));
-            }
-
-            routes.addAll(createRoutes(api, resource.resources()));
-        }
-        return routes;
-    }
-
-    private String mapToRatpackPath(final Resource resource) {
-        String ramlPath = resource.resourcePath().substring(1); // remove leading "/"
-
-        for (final TypeDeclaration uriParamDeclaration : resource.uriParameters())  {
-            ramlPath = ramlPath.replaceAll("\\{" + uriParamDeclaration.name() + "\\}", ":" + uriParamDeclaration.name());
-        }
-        final String ratpackPath;
-
-        if (ramlPath.contains("{") && ramlPath.contains("}")) {
-            LOG.warn("Resource path contains unspecified uri parameter: {}", ramlPath);
-            ratpackPath = Pattern.compile("\\{([^}]*)\\}").matcher(ramlPath).replaceAll(":$1");
-        } else {
-            ratpackPath = ramlPath;
-        }
-
-        return ratpackPath;
+        ctx.insert(ramlModelRepository.getRoutes());
     }
 
     enum ValidationKind {
@@ -113,6 +68,62 @@ class RamlRouter implements Handler {
 
         public String getMessage() {
             return message;
+        }
+    }
+
+    static class Routes {
+        private final Logger LOG = LoggerFactory.getLogger(RamlRouter.class);
+        private final Handler[] routes;
+
+        public Routes(final Api api) {
+            final List<Handler> ramlRoutes = createRoutes(api);
+            routes = ramlRoutes.toArray(new Handler[ramlRoutes.size()]);
+        }
+
+        public Handler[] getRoutes() {
+            return routes;
+        }
+
+        private List<Handler> createRoutes(final Api api) {
+            return createRoutes(api, api.resources());
+        }
+
+        private List<Handler> createRoutes(final Api api, final List<Resource> resources) {
+            final List<Handler> routes = new ArrayList<>();
+
+            for (final Resource resource : resources) {
+                final String ratpackPath = mapToRatpackPath(resource);
+
+                for (final Method method : resource.methods()) {
+                    final RamlRouter.Route route = new RamlRouter.Route(api, resource, method);
+                    final String methodName = method.method();
+
+                    routes.add(Handlers.path(ratpackPath,
+                            ctx -> ctx.byMethod(byMethod ->
+                                    byMethod.named(methodName, () -> route.handle(ctx)))));
+                }
+
+                routes.addAll(createRoutes(api, resource.resources()));
+            }
+            return routes;
+        }
+
+        private String mapToRatpackPath(final Resource resource) {
+            String ramlPath = resource.resourcePath().substring(1); // remove leading "/"
+
+            for (final TypeDeclaration uriParamDeclaration : resource.uriParameters())  {
+                ramlPath = ramlPath.replaceAll("\\{" + uriParamDeclaration.name() + "\\}", ":" + uriParamDeclaration.name());
+            }
+            final String ratpackPath;
+
+            if (ramlPath.contains("{") && ramlPath.contains("}")) {
+                LOG.warn("Resource path contains unspecified uri parameter: {}", ramlPath);
+                ratpackPath = Pattern.compile("\\{([^}]*)\\}").matcher(ramlPath).replaceAll(":$1");
+            } else {
+                ratpackPath = ramlPath;
+            }
+
+            return ratpackPath;
         }
     }
 
