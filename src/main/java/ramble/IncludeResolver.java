@@ -28,7 +28,7 @@ class IncludeResolver {
                     final String indent = matcher.group(1) + "  ";
                     final Path includePath = filePath.getParent().resolve(matcher.group(3));
                     stringWriter.append(currentIndent).append(matcher.group(1)).append(matcher.group(2));
-                    if (includePath.getFileName().toString().endsWith(".json")) {
+                    if (!includePath.getFileName().toString().endsWith(".raml")) {
                         stringWriter.append(" |");
                     }
                     stringWriter.append("\n");
