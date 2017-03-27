@@ -15,6 +15,7 @@ import ratpack.handling.Handler;
 import ratpack.handling.Handlers;
 import ratpack.http.Headers;
 import ratpack.http.Request;
+import ratpack.http.TypedData;
 import ratpack.http.client.HttpClient;
 import ratpack.path.PathTokens;
 
@@ -23,6 +24,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static ratpack.jackson.Jackson.json;
 
@@ -166,7 +168,7 @@ class RamlRouter implements Handler {
             if (validationErrors.isEmpty()) {
                 switch (mode(ctx)) {
                     case proxy:
-                        proxyRequest(ctx, request);
+                        proxyRequest(ctx);
                         break;
                     case example:
                         sendExample(ctx, method);
@@ -185,6 +187,15 @@ class RamlRouter implements Handler {
             errors.addAll(validateQueryParameters(context.getRequest()));
 
             return errors;
+        }
+
+        private List<ValidationError> validateBody(final TypedData body, final String context) {
+            final Optional<TypeDeclaration> bodyTypeDeclaration = method.body().stream()
+                    .filter(typeDeclaration -> body.getContentType().getType().equals(typeDeclaration.name()))
+                    .findFirst();
+            return bodyTypeDeclaration.map(t -> t.validate(body.getText()).stream().map(r -> new ValidationError(ValidationKind.body, context, r.getMessage())))
+                                      .orElseGet(() -> Stream.of(new ValidationError(ValidationKind.body, context, "Unknown body content type '" + body.getContentType() + "")))
+                    .collect(Collectors.toList());
         }
 
         private List<ValidationError> validateUriParameters(final PathTokens allPathTokens) {
@@ -230,17 +241,27 @@ class RamlRouter implements Handler {
             return validationResults;
         }
 
-
-        private void proxyRequest(final Context ctx, final Request request) {
-            final URI uri = proxiedUri(ctx);
-            final HttpClient httpClient = ctx.get(HttpClient.class);
-            request.getBody().flatMap(incoming -> httpClient.requestStream(uri, spec -> {
-                spec.getBody().buffer(incoming.getBuffer());
-                spec.getHeaders().copy(request.getHeaders());
-                spec.method(request.getMethod());
-            })).then(streamedResponse -> streamedResponse.forwardTo(ctx.getResponse()));
+        private void proxyRequest(final Context ctx) {
+            ctx.getRequest().getBody().then(incoming -> streamValidatedBody(ctx, incoming));
         }
 
+        private void streamValidatedBody(final Context ctx, final TypedData body) {
+            final List<ValidationError> validationErrors = validateBody(body, "request");
+
+            if (validationErrors.isEmpty()) {
+                final URI proxiedUri = proxiedUri(ctx);
+                final Request request = ctx.getRequest();
+                final HttpClient httpClient = ctx.get(HttpClient.class);
+                httpClient.requestStream(proxiedUri, spec -> {
+                    spec.getBody().buffer(body.getBuffer());
+                    spec.getHeaders().copy(request.getHeaders());
+                    spec.method(request.getMethod());
+                }).then(streamedResponse -> streamedResponse.forwardTo(ctx.getResponse()));
+            } else {
+                ctx.getResponse().status(400);
+                ctx.render(json(validationErrors));
+            }
+        }
 
         private void sendExample(final Context ctx, final Method ramlMethod) {
             final Optional<Response> response = ramlMethod.responses().stream().findFirst();
