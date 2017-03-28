@@ -194,7 +194,7 @@ class RamlRouter implements Handler {
                     .filter(typeDeclaration -> body.getContentType().getType().equals(typeDeclaration.name()))
                     .findFirst();
             return bodyTypeDeclaration.map(t -> t.validate(body.getText()).stream().map(r -> new ValidationError(ValidationKind.body, context, r.getMessage())))
-                                      .orElseGet(() -> Stream.of(new ValidationError(ValidationKind.body, context, "Unknown body content type '" + body.getContentType() + "")))
+                                      .orElseGet(() -> Stream.empty())
                     .collect(Collectors.toList());
         }
 
