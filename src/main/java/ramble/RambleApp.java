@@ -40,7 +40,8 @@ public class RambleApp {
                 .serverConfig(c -> c.findBaseDir())
                 .registry(Guice.registry(b -> b.module(HandlebarsModule.class)
                         .bindInstance(RamlModelRepository.of(filePath))
-                        .bindInstance(FileWatcher.of(filePath.getParent(), watchFiles))))
+                        .bindInstance(FileWatcher.of(filePath.getParent(), watchFiles))
+                        .bind(Validator.class)))
                 .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate("index.html")))
                         .prefix("api-console", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
