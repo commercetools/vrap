@@ -13,7 +13,6 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import org.apache.commons.cli.*;
 
@@ -39,13 +38,14 @@ public class RambleApp {
         RatpackServer.start(server -> server
                 .serverConfig(c -> c.findBaseDir())
                 .registry(Guice.registry(b -> b.module(HandlebarsModule.class)
+                        .bindInstance(options)
                         .bindInstance(RamlModelRepository.of(filePath))
                         .bindInstance(FileWatcher.of(filePath.getParent(), watchFiles))
                         .bind(Validator.class)))
                 .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate("index.html")))
                         .prefix("api-console", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
-                                        new ApiConsoleHandler(filePath),
+                                        new ApiConsoleHandler(),
                                         new WebJarHandler("api-console", "3.0.4"),
                                         new WebJarHandler("livereload-js", "2.2.2"),
                                         Handlers.files(ctx.getServerConfig(), Action.noop()))))
@@ -57,7 +57,7 @@ public class RambleApp {
                         // .get("livereload", ctx -> WebSockets.websocket(ctx, new LivereloadHandler(ctx, filePath)))));
     }
 
-    private static class RambleOptions {
+    static class RambleOptions {
         private Path filePath;
         private RambleMode mode;
         private final Options options;
@@ -115,12 +115,8 @@ public class RambleApp {
 
         private RambleMode parseModeOption(String value)
         {
-            final Optional<RambleMode> mode = Optional.ofNullable(value)
-                    .map(o -> Stream.of(RambleMode.values())
-                            .filter(m -> m.name().equals(o))
-                            .findFirst()
-                            .orElse(null)
-                    );
+            Optional<RambleMode> mode = RambleMode.parse(value);
+
             if (mode.isPresent()) {
                 return mode.get();
             }
