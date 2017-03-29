@@ -36,6 +36,7 @@ class RamlModelRepository implements Service {
             for (ValidationResult validationResult : ramlModelResult.getValidationResults()) {
                 LOG.error("{}", validationResult.toString());
             }
+            System.exit(1);
         }
         routes = new RamlRouter.Routes(getApi()).getRoutes();
     }
