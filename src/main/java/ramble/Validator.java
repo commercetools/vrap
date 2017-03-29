@@ -5,6 +5,7 @@ import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.resources.Resource;
 import ratpack.handling.Context;
+import ratpack.http.Headers;
 import ratpack.http.MediaType;
 import ratpack.http.Request;
 import ratpack.http.TypedData;
@@ -12,6 +13,7 @@ import ratpack.http.client.ReceivedResponse;
 import ratpack.http.internal.DefaultMediaType;
 import ratpack.path.PathTokens;
 import ratpack.service.Service;
+import ratpack.util.MultiValueMap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +31,7 @@ public class Validator implements Service {
     public enum ValidationKind {
         uriParameter,
         queryParameter,
+        header,
         body
     }
 
@@ -85,7 +88,7 @@ public class Validator implements Service {
     }
 
     /**
-     * Validates the uri and query parameters of the request of the given context.
+     * Validates the headers, uri and query parameters of the request of the given context.
      *
      * @param context  the context holding the requesz
      * @param resource the resource to validate the request against
@@ -97,6 +100,7 @@ public class Validator implements Service {
 
         errors.addAll(validateUriParameters(context.getAllPathTokens(), resource));
         errors.addAll(validateQueryParameters(context.getRequest(), method));
+        errors.addAll(validateRequestHeaders(context.getRequest().getHeaders(), method));
 
         return errors.isEmpty() ?
                 Optional.empty() :
@@ -115,7 +119,7 @@ public class Validator implements Service {
                 .filter(typeDeclaration -> body.getContentType().getType().equals(typeDeclaration.name()))
                 .findFirst();
         final List<ValidationError> errors = bodyTypeDeclaration.map(t -> t.validate(body.getText()).stream().map(r -> new ValidationError(ValidationKind.body, "request", r.getMessage())))
-                .orElseGet(() -> Stream.empty())
+                .orElseGet(Stream::empty)
                 .collect(Collectors.toList());
 
         return errors.isEmpty() ?
@@ -150,45 +154,81 @@ public class Validator implements Service {
     }
 
     private List<ValidationError> validateUriParameters(final PathTokens allPathTokens, final Resource resource) {
-        final List<ValidationError> validationResults = new ArrayList<>();
+        final List<ValidationError> validationErrors = new ArrayList<>();
 
-        final List<TypeDeclaration> requiredUriParameters = resource.uriParameters();
+        final List<TypeDeclaration> uriParamDeclarations = resource.uriParameters();
 
-        for (final TypeDeclaration uriParameter : requiredUriParameters) {
-            final String name = uriParameter.name();
+        for (final TypeDeclaration uriParamDeclaration : uriParamDeclarations) {
+            final String name = uriParamDeclaration.name();
             if (allPathTokens.containsKey(name)) {
-                final List<ValidationResult> validate = uriParameter.validate(allPathTokens.get(name));
-                List<ValidationError> results = validate.stream()
+                final List<ValidationResult> validate = uriParamDeclaration.validate(allPathTokens.get(name));
+                final List<ValidationError> results = validate.stream()
                         .map(r -> new ValidationError(ValidationKind.uriParameter, name, r.getMessage()))
                         .collect(Collectors.toList());
-                validationResults.addAll(results);
-            } else if (uriParameter.required()) {
-                validationResults.add(new ValidationError(ValidationKind.uriParameter, uriParameter.name(), "Required uri parameter missing"));
+                validationErrors.addAll(results);
+            } else if (uriParamDeclaration.required()) {
+                validationErrors.add(new ValidationError(ValidationKind.uriParameter, uriParamDeclaration.name(), "Required uri parameter missing"));
             }
         }
-        return validationResults;
+        return validationErrors;
     }
 
     private List<ValidationError> validateQueryParameters(final Request request, final Method method) {
-        final List<ValidationError> validationResults = new ArrayList<>();
+        final List<ValidationError> validationErrors = new ArrayList<>();
 
-        final Map<String, TypeDeclaration> queryParameters = method.queryParameters().stream()
+        final Map<String, TypeDeclaration> queryParamToDeclaration = method.queryParameters().stream()
                 .collect(Collectors.toMap(TypeDeclaration::name, Function.identity()));
 
-        for (final String paramName : request.getQueryParams().keySet()) {
-            if (queryParameters.containsKey(paramName)) {
-                final TypeDeclaration queryParamDeclaration = queryParameters.get(paramName);
-                for (final String paramValue : request.getQueryParams().getAll(paramName)) {
-                    final List<ValidationResult> validate = queryParamDeclaration.validate(paramValue);
-                    final List<ValidationError> results = validate.stream()
-                            .map(r -> new ValidationError(ValidationKind.queryParameter, String.join("=", paramName, paramValue), r.getMessage()))
+        final MultiValueMap<String, String> queryParams = request.getQueryParams();
+        for (final String queryParamName : queryParams.keySet()) {
+            if (queryParamToDeclaration.containsKey(queryParamName)) {
+                final TypeDeclaration queryParamDeclaration = queryParamToDeclaration.get(queryParamName);
+                for (final String queryParamValue : queryParams.getAll(queryParamName)) {
+                    final List<ValidationResult> validationResults = queryParamDeclaration.validate(queryParamValue);
+                    final List<ValidationError> results = validationResults.stream()
+                            .map(r -> new ValidationError(ValidationKind.queryParameter, String.join("=", queryParamName, queryParamValue), r.getMessage()))
                             .collect(Collectors.toList());
-                    validationResults.addAll(results);
+                    validationErrors.addAll(results);
                 }
             } else {
-                validationResults.add(new ValidationError(ValidationKind.queryParameter, paramName, "Unknown query parameter"));
+                validationErrors.add(new ValidationError(ValidationKind.queryParameter, queryParamName, "Unknown query parameter"));
             }
         }
-        return validationResults;
+        validationErrors.addAll(method.queryParameters().stream()
+                .filter(TypeDeclaration::required)
+                .map(TypeDeclaration::name)
+                .filter(queryParamName -> !queryParams.containsKey(queryParamName))
+                .map(queryParamName -> new ValidationError(ValidationKind.queryParameter, queryParamName, "Required query parameter missing"))
+                .collect(Collectors.toList()));
+
+        return validationErrors;
+    }
+
+    private List<ValidationError> validateRequestHeaders(final Headers headers, final Method method) {
+        final List<ValidationError> validationErrors = new ArrayList<>();
+        final Map<String, TypeDeclaration> headerToDeclaration = method.headers().stream()
+                .collect(Collectors.toMap(TypeDeclaration::name, Function.identity()));
+
+        final MultiValueMap<String, String> requestHeaders = headers.asMultiValueMap();
+        for (final String headerName : requestHeaders.keySet()) {
+            if (headerToDeclaration.containsKey(headerName)) {
+                final TypeDeclaration headerDeclaration = headerToDeclaration.get(headerName);
+                for (final String headerValue : requestHeaders.getAll(headerName)) {
+                    final List<ValidationResult> validationResults = headerDeclaration.validate(headerValue);
+                    final List<ValidationError> results = validationResults.stream()
+                            .map(r -> new ValidationError(ValidationKind.header, String.join("=", headerName, headerValue), r.getMessage()))
+                            .collect(Collectors.toList());
+                    validationErrors.addAll(results);
+                }
+            }
+        }
+        validationErrors.addAll(method.headers().stream()
+                .filter(TypeDeclaration::required)
+                .map(TypeDeclaration::name)
+                .filter(headerName -> !requestHeaders.containsKey(headerName))
+                .map(headerName -> new ValidationError(ValidationKind.header, headerName, "Required header missing"))
+                .collect(Collectors.toList()));
+
+        return validationErrors;
     }
 }
