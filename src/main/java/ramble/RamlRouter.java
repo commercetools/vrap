@@ -142,14 +142,14 @@ class RamlRouter implements Handler {
                         proxyRequest(ctx);
                         break;
                     case example:
-                        sendExample(ctx, method);
+                        exampleRequest(ctx);
                         break;
                 }
             }
         }
 
         private void proxyRequest(final Context ctx) {
-            ctx.getRequest().getBody().then(incoming -> streamValidatedBody(ctx, incoming));
+            ctx.getRequest().getBody().then(body -> streamValidatedBody(ctx, body));
         }
 
         private void streamValidatedBody(final Context ctx, final TypedData body) {
@@ -188,15 +188,27 @@ class RamlRouter implements Handler {
             };
         }
 
-        private void sendExample(final Context ctx, final Method ramlMethod) {
-            final Optional<Response> response = ramlMethod.responses().stream().findFirst();
-            final Optional<ExampleSpec> example = response.flatMap(r -> r.body().stream()
-                    .findFirst()).map(TypeDeclaration::example);
+        private void exampleRequest(final Context ctx) {
+            ctx.getRequest().getBody().then(body -> streamExample(ctx, body));
+        }
 
-            if (example.isPresent()) {
-                ctx.render(example.get().value());
+        private void streamExample(final Context ctx, final TypedData body) {
+            final Validator validator = ctx.get(Validator.class);
+            final Optional<Validator.ValidationErrors> validationErrors = validator.validateRequestBody(body, method);
+
+            if (validationErrors.isPresent()) {
+                ctx.getResponse().status(RambleStatus.BAD_REQUEST);
+                ctx.render(json(validationErrors.get()));
             } else {
-                ctx.getResponse().send("No example found.");
+                final Optional<Response> response = method.responses().stream().findFirst();
+                final Optional<ExampleSpec> example = response.flatMap(r -> r.body().stream()
+                        .findFirst()).map(TypeDeclaration::example);
+
+                if (example.isPresent()) {
+                    ctx.render(example.get().value());
+                } else {
+                    ctx.getResponse().send("No example found.");
+                }
             }
         }
 
