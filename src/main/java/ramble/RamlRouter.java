@@ -134,7 +134,7 @@ class RamlRouter implements Handler {
 
             final Optional<Validator.ValidationErrors> validationErrors = validator.validateRequest(ctx, resource, method);
             if (validationErrors.isPresent()) {
-                ctx.getResponse().status(400);
+                ctx.getResponse().status(RambleStatus.BAD_REQUEST);
                 ctx.render(json(validationErrors.get()));
             } else {
                 switch (mode(ctx)) {
@@ -157,7 +157,7 @@ class RamlRouter implements Handler {
             final Optional<Validator.ValidationErrors> validationErrors = validator.validateRequestBody(body, method);
 
             if (validationErrors.isPresent()) {
-                ctx.getResponse().status(400);
+                ctx.getResponse().status(RambleStatus.BAD_REQUEST);
                 ctx.render(json(validationErrors.get()));
             } else {
                 final Request request = ctx.getRequest();
@@ -172,7 +172,7 @@ class RamlRouter implements Handler {
                 final Optional<Validator.ValidationErrors> receivedResponseErrors = validator.validateReceivedResponse(receivedResponse, method);
 
                 if (receivedResponseErrors.isPresent()) {
-                    ctx.getResponse().status(502);
+                    ctx.getResponse().status(RambleStatus.BAD_GATEWAY);
                     ctx.render(json(receivedResponseErrors.get()));
                 } else {
                     receivedResponse.forwardTo(ctx.getResponse());
