@@ -9,6 +9,7 @@ import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.resources.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ratpack.func.Action;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 import ratpack.handling.Handlers;
@@ -16,6 +17,8 @@ import ratpack.http.Headers;
 import ratpack.http.Request;
 import ratpack.http.TypedData;
 import ratpack.http.client.HttpClient;
+import ratpack.http.client.ReceivedResponse;
+import ratpack.http.client.RequestSpec;
 
 import java.net.URI;
 import java.util.*;
@@ -157,15 +160,32 @@ class RamlRouter implements Handler {
                 ctx.getResponse().status(400);
                 ctx.render(json(validationErrors.get()));
             } else {
-                final URI proxiedUri = proxiedUri(ctx);
                 final Request request = ctx.getRequest();
                 final HttpClient httpClient = ctx.get(HttpClient.class);
-                httpClient.requestStream(proxiedUri, spec -> {
-                    spec.getBody().buffer(body.getBuffer());
-                    spec.getHeaders().copy(request.getHeaders());
-                    spec.method(request.getMethod());
-                }).then(streamedResponse -> streamedResponse.forwardTo(ctx.getResponse()));
+                final URI proxiedUri = proxiedUri(ctx);
+                httpClient.request(proxiedUri, proxyRequest(body, request)).then(handleReceivedResponse(ctx, validator));
             }
+        }
+
+        private Action<ReceivedResponse> handleReceivedResponse(final Context ctx, final Validator validator) {
+            return receivedResponse -> {
+                final Optional<Validator.ValidationErrors> receivedResponseErrors = validator.validateReceivedResponse(receivedResponse, method);
+
+                if (receivedResponseErrors.isPresent()) {
+                    ctx.getResponse().status(502);
+                    ctx.render(json(receivedResponseErrors.get()));
+                } else {
+                    receivedResponse.forwardTo(ctx.getResponse());
+                }
+            };
+        }
+
+        private Action<RequestSpec> proxyRequest(final TypedData body, final Request request) {
+            return spec -> {
+                spec.getBody().buffer(body.getBuffer());
+                spec.getHeaders().copy(request.getHeaders());
+                spec.method(request.getMethod());
+            };
         }
 
         private void sendExample(final Context ctx, final Method ramlMethod) {

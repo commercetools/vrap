@@ -5,8 +5,11 @@ import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.resources.Resource;
 import ratpack.handling.Context;
+import ratpack.http.MediaType;
 import ratpack.http.Request;
 import ratpack.http.TypedData;
+import ratpack.http.client.ReceivedResponse;
+import ratpack.http.internal.DefaultMediaType;
 import ratpack.path.PathTokens;
 import ratpack.service.Service;
 
@@ -19,7 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Provides validation of ratpack requests and responses against a raml specification.
+ * Provides validation of ratpack requests and received responses against a raml specification.
  */
 public class Validator implements Service {
 
@@ -31,13 +34,29 @@ public class Validator implements Service {
 
     public class ValidationErrors {
         private final List<ValidationError> errors;
+        private final Integer responseStatusCode;
+        private final Object responseBody;
 
         public ValidationErrors(final List<ValidationError> errors) {
+            this(errors, null, null);
+        }
+
+        public ValidationErrors(final List<ValidationError> errors, final Integer responseStatusCode, final Object responseBody) {
             this.errors = errors;
+            this.responseStatusCode = responseStatusCode;
+            this.responseBody = responseBody;
         }
 
         public List<ValidationError> getErrors() {
             return errors;
+        }
+
+        public Integer getResponseStatusCode() {
+            return responseStatusCode;
+        }
+
+        public Object getResponseBody() {
+            return responseBody;
         }
     }
 
@@ -102,6 +121,32 @@ public class Validator implements Service {
         return errors.isEmpty() ?
                 Optional.empty() :
                 Optional.of(new ValidationErrors(errors));
+    }
+
+    /**
+     * Validates the given received response against the given method.
+     *
+     * @param receivedResponse the received response
+     * @param method           the method to validate the body against
+     * @return validation errors
+     */
+    public Optional<ValidationErrors> validateReceivedResponse(final ReceivedResponse receivedResponse, final Method method) {
+        final MediaType contentType = DefaultMediaType.get(receivedResponse.getHeaders().get("Content-Type"));
+        final String statusCode = Integer.toString(receivedResponse.getStatusCode());
+        final Optional<TypeDeclaration> responseTypeDecl = method.responses().stream().filter(response -> response.code().value().equals(statusCode))
+                .flatMap(r -> r.body().stream())
+                .filter(b -> b.name().equals(contentType.getType()))
+                .findFirst();
+
+        final List<ValidationError> errors = responseTypeDecl.map(t ->
+                t.validate(receivedResponse.getBody().getText()).stream().map(r -> new ValidationError(ValidationKind.body, "response", r.getMessage())))
+                .orElseGet(Stream::empty)
+                .collect(Collectors.toList());
+        final String bodyValue = receivedResponse.getBody().getText();
+
+        return errors.isEmpty() ?
+                Optional.empty() :
+                Optional.of(new ValidationErrors(errors, receivedResponse.getStatusCode(), bodyValue));
     }
 
     private List<ValidationError> validateUriParameters(final PathTokens allPathTokens, final Resource resource) {
