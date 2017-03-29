@@ -17,12 +17,6 @@ import static ratpack.handlebars.Template.handlebarsTemplate;
 class ApiConsoleHandler implements Handler {
     private final static Logger LOG = LoggerFactory.getLogger(ApiConsoleHandler.class);
 
-    private final Path fileName;
-
-    public ApiConsoleHandler(final Path ramlFile) {
-        this.fileName = ramlFile;
-    }
-
     @Override
     public void handle(final Context ctx) throws Exception {
         final PathBinding pathBinding = ctx.getPathBinding();

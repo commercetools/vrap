@@ -182,9 +182,8 @@ class RamlRouter implements Handler {
 
         private RambleMode mode(final Context ctx) {
             final Headers headers = ctx.getRequest().getHeaders();
-            return Optional.ofNullable(headers.get(MODE_HEADER))
-                    .map(RambleMode::valueOf)
-                    .orElse(RambleMode.example);
+            final RambleApp.RambleOptions options = ctx.get(RambleApp.RambleOptions.class);
+            return RambleMode.parse(headers.get(MODE_HEADER)).orElse(options.getMode());
         }
 
         private URI proxiedUri(final Context ctx) {
