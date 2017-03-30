@@ -15,13 +15,9 @@ import ratpack.path.PathTokens;
 import ratpack.service.Service;
 import ratpack.util.MultiValueMap;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Provides validation of ratpack requests and received responses against a raml specification.
@@ -118,9 +114,8 @@ public class Validator implements Service {
         final Optional<TypeDeclaration> bodyTypeDeclaration = method.body().stream()
                 .filter(typeDeclaration -> body.getContentType().getType().equals(typeDeclaration.name()))
                 .findFirst();
-        final List<ValidationError> errors = bodyTypeDeclaration.map(t -> t.validate(body.getText()).stream().map(r -> new ValidationError(ValidationKind.body, "request", r.getMessage())))
-                .orElseGet(Stream::empty)
-                .collect(Collectors.toList());
+        final List<ValidationError> errors = bodyTypeDeclaration.map(typeDeclaration -> validate(body.getText(), typeDeclaration, ValidationKind.body, "request"))
+                .orElse(Collections.emptyList());
 
         return errors.isEmpty() ?
                 Optional.empty() :
@@ -142,10 +137,9 @@ public class Validator implements Service {
                 .filter(b -> b.name().equals(contentType.getType()))
                 .findFirst();
 
-        final List<ValidationError> errors = responseTypeDecl.map(t ->
-                t.validate(receivedResponse.getBody().getText()).stream().map(r -> new ValidationError(ValidationKind.body, "response", r.getMessage())))
-                .orElseGet(Stream::empty)
-                .collect(Collectors.toList());
+        final List<ValidationError> errors = responseTypeDecl.map(typeDeclaration ->
+                validate(receivedResponse.getBody().getText(), typeDeclaration, ValidationKind.body, "response"))
+                .orElse(Collections.emptyList());
         final String bodyValue = receivedResponse.getBody().getText();
 
         return errors.isEmpty() ?
@@ -161,11 +155,8 @@ public class Validator implements Service {
         for (final TypeDeclaration uriParamDeclaration : uriParamDeclarations) {
             final String name = uriParamDeclaration.name();
             if (allPathTokens.containsKey(name)) {
-                final List<ValidationResult> validate = uriParamDeclaration.validate(allPathTokens.get(name));
-                final List<ValidationError> results = validate.stream()
-                        .map(r -> new ValidationError(ValidationKind.uriParameter, name, r.getMessage()))
-                        .collect(Collectors.toList());
-                validationErrors.addAll(results);
+                final List<ValidationError> errors = validate(allPathTokens.get(name), uriParamDeclaration, ValidationKind.uriParameter, uriParamDeclaration.name());
+                validationErrors.addAll(errors);
             } else if (uriParamDeclaration.required()) {
                 validationErrors.add(new ValidationError(ValidationKind.uriParameter, uriParamDeclaration.name(), "Required uri parameter missing"));
             }
@@ -184,11 +175,9 @@ public class Validator implements Service {
             if (queryParamToDeclaration.containsKey(queryParamName)) {
                 final TypeDeclaration queryParamDeclaration = queryParamToDeclaration.get(queryParamName);
                 for (final String queryParamValue : queryParams.getAll(queryParamName)) {
-                    final List<ValidationResult> validationResults = queryParamDeclaration.validate(queryParamValue);
-                    final List<ValidationError> results = validationResults.stream()
-                            .map(r -> new ValidationError(ValidationKind.queryParameter, String.join("=", queryParamName, queryParamValue), r.getMessage()))
-                            .collect(Collectors.toList());
-                    validationErrors.addAll(results);
+                    final String validationContext = String.join("=", queryParamName, queryParamValue);
+                    final List<ValidationError> errors = validate(queryParamValue, queryParamDeclaration, ValidationKind.queryParameter, validationContext);
+                    validationErrors.addAll(errors);
                 }
             } else {
                 validationErrors.add(new ValidationError(ValidationKind.queryParameter, queryParamName, "Unknown query parameter"));
@@ -214,11 +203,9 @@ public class Validator implements Service {
             if (headerToDeclaration.containsKey(headerName)) {
                 final TypeDeclaration headerDeclaration = headerToDeclaration.get(headerName);
                 for (final String headerValue : requestHeaders.getAll(headerName)) {
-                    final List<ValidationResult> validationResults = headerDeclaration.validate(headerValue);
-                    final List<ValidationError> results = validationResults.stream()
-                            .map(r -> new ValidationError(ValidationKind.header, String.join("=", headerName, headerValue), r.getMessage()))
-                            .collect(Collectors.toList());
-                    validationErrors.addAll(results);
+                    final String validationContext = String.join("=", headerName, headerValue);
+                    final List<ValidationError> errors = validate(headerValue, headerDeclaration, ValidationKind.header, validationContext);
+                    validationErrors.addAll(errors);
                 }
             }
         }
@@ -230,5 +217,24 @@ public class Validator implements Service {
                 .collect(Collectors.toList()));
 
         return validationErrors;
+    }
+
+    /**
+     * This method is just a wrapper around the raml parsers {@link TypeDeclaration#validate(String)} method
+     * which catches any exception and converts it into a {@link ValidationError}.
+     *
+     * @param payload           the payload to validate
+     * @param typeDeclaration   the type declaration used to validate the payload
+     * @param kind              the validation kind
+     * @param validationContext the validation context
+     * @return list of validation errors
+     */
+    private List<ValidationError> validate(final String payload, final TypeDeclaration typeDeclaration, final ValidationKind kind, final String validationContext) {
+        try {
+            final List<ValidationResult> validationResults = typeDeclaration.validate(payload);
+            return validationResults.stream().map(r -> new ValidationError(kind, validationContext, r.getMessage())).collect(Collectors.toList());
+        } catch (final Exception e) {
+            return Collections.singletonList(new ValidationError(kind, validationContext, "Exception in validator:" + e.getMessage()));
+        }
     }
 }
