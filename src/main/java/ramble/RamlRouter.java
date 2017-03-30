@@ -219,10 +219,11 @@ class RamlRouter implements Handler {
         }
 
         private URI proxiedUri(final Context ctx) {
+            final RambleApp.RambleOptions options = ctx.get(RambleApp.RambleOptions.class);
             final Request request = ctx.getRequest();
             final String query = request.getQuery();
             final String boundPath = ctx.getPathBinding().getBoundTo() + (!query.isEmpty() ? "?" + query : "");
-            final String baseUri = api.baseUri().value();
+            final String baseUri = options.getApiUrl().orElse(api.baseUri().value());
             final String uriStr = baseUri.endsWith("/") ?
                     baseUri + boundPath :
                     Joiner.on("/").join(baseUri, boundPath);

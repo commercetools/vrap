@@ -1,5 +1,6 @@
 package ramble;
 
+import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.func.Action;
@@ -36,7 +37,10 @@ public class RambleApp {
         watchFiles.add(filePath);
 
         RatpackServer.start(server -> server
-                .serverConfig(c -> c.findBaseDir())
+                .serverConfig(c -> {
+                    c.findBaseDir();
+                    c.port(options.getPort());
+                })
                 .registry(Guice.registry(b -> b.module(HandlebarsModule.class)
                         .bindInstance(options)
                         .bindInstance(RamlModelRepository.of(filePath))
@@ -60,7 +64,9 @@ public class RambleApp {
     static class RambleOptions {
         private Path filePath;
         private RambleMode mode;
+        private int port;
         private final Options options;
+        private String apiUrl;
 
         public RambleOptions(String[] args)
         {
@@ -80,6 +86,8 @@ public class RambleApp {
             }
 
             mode = parseModeOption(cmd.getOptionValue(getModeOption().getOpt(), RambleMode.proxy.name()));
+            port = NumberUtils.toInt(cmd.getOptionValue(getPortOption().getOpt()), 5050);
+            apiUrl = cmd.getOptionValue(getApiUrlOption().getOpt());
 
             if (cmd.getArgs().length == 0) {
                 LOG.error("Missing file input argument.");
@@ -93,6 +101,8 @@ public class RambleApp {
         {
             final Options options = new Options();
             options.addOption(getModeOption());
+            options.addOption(getApiUrlOption());
+            options.addOption(getPortOption());
 
             return options;
         }
@@ -102,6 +112,26 @@ public class RambleApp {
             return Option.builder("m")
                     .argName("mode")
                     .desc("ramble mode: " + Arrays.toString(RambleMode.values()))
+                    .hasArg(true)
+                    .required(false)
+                    .build();
+        }
+
+        private Option getApiUrlOption()
+        {
+            return Option.builder("a")
+                    .argName("api")
+                    .desc("URI to proxy to")
+                    .hasArg(true)
+                    .required(false)
+                    .build();
+        }
+
+        private Option getPortOption()
+        {
+            return Option.builder("p")
+                    .argName("port")
+                    .desc("port to listen for requests")
                     .hasArg(true)
                     .required(false)
                     .build();
@@ -133,6 +163,14 @@ public class RambleApp {
 
         public RambleMode getMode() {
             return mode;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public Optional<String> getApiUrl() {
+            return Optional.ofNullable(apiUrl);
         }
     }
 }
