@@ -23,6 +23,10 @@ class IncludeResolver {
         for (final String line : Files.readAllLines(filePath)) {
             final Matcher matcher = INCLUDE_TAG_PATTERN.matcher(line);
 
+            if (line.startsWith("extends:")) {
+                stringWriter.append(line).append("?include").append("\n");
+                continue;
+            }
             if (!line.startsWith("#%RAML 1.0 DataType")) {
                 if (matcher.matches()) {
                     final String indent = matcher.group(1) + "  ";
