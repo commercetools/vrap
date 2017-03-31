@@ -20,7 +20,6 @@ import ratpack.http.TypedData;
 import ratpack.http.client.HttpClient;
 import ratpack.http.client.ReceivedResponse;
 import ratpack.http.client.RequestSpec;
-import ratpack.path.PathTokens;
 
 import java.net.URI;
 import java.util.*;
@@ -114,7 +113,7 @@ class RamlRouter {
                     pattern = uriPattern;
                 }
             }
-            ramlPath = ramlPath.replace("{" + uriParamDeclaration.name() + "}", pattern);
+            ramlPath = ramlPath.replace("{" + uriParamDeclaration.name() + "}", pattern).replace("^","").replace("$","");
         }
 
 
