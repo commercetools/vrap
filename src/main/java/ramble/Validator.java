@@ -94,7 +94,7 @@ public class Validator implements Service {
     public Optional<ValidationErrors> validateRequest(final Context context, final Resource resource, final Method method) {
         final List<ValidationError> errors = new ArrayList<>();
 
-        errors.addAll(validateUriParameters(context.getAllPathTokens(), resource));
+//        errors.addAll(validateUriParameters(context.getAllPathTokens(), resource));
         errors.addAll(validateQueryParameters(context.getRequest(), method));
         errors.addAll(validateRequestHeaders(context.getRequest().getHeaders(), method));
 
