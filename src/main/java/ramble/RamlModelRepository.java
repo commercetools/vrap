@@ -22,23 +22,18 @@ class RamlModelRepository implements Service {
     private final static Logger LOG = LoggerFactory.getLogger(RamlModelRepository.class);
 
     private final Path filePath;
-    private RamlModelResult ramlModelResult;
-    private Handler[] routes;
+    private final RamlModelResult ramlModelResult;
 
     RamlModelRepository(final Path filePath) {
         this.filePath = filePath;
-    }
+        this.ramlModelResult = new RamlModelBuilder().buildApi(filePath.toFile());
 
-    @Override
-    public void onStart(final StartEvent event) throws Exception {
-        ramlModelResult = new RamlModelBuilder().buildApi(filePath.toFile());
         if (ramlModelResult.hasErrors()) {
             for (ValidationResult validationResult : ramlModelResult.getValidationResults()) {
                 LOG.error("{}", validationResult.toString());
             }
             System.exit(1);
         }
-        routes = new RamlRouter.Routes(getApi()).getRoutes();
     }
 
     /**
@@ -77,10 +72,6 @@ class RamlModelRepository implements Service {
     @Nullable
     public Api getApi() {
         return ramlModelResult.getApiV10();
-    }
-
-    public Handler[] getRoutes() {
-        return routes;
     }
 
     public static RamlModelRepository of(final Path filePath) {

@@ -32,6 +32,7 @@ public class RambleApp {
         final Path filePath = options.getFilePath();
         final Path fileName = filePath.getFileName();
 
+        final RamlModelRepository ramlRepo = RamlModelRepository.of(filePath);
         final FileContentModifier contentModifier = new FileContentModifier(fileName.toString());
         final List<Path> watchFiles = new IncludeCollector(filePath).collect();
         watchFiles.add(filePath);
@@ -43,7 +44,7 @@ public class RambleApp {
                 })
                 .registry(Guice.registry(b -> b.module(HandlebarsModule.class)
                         .bindInstance(options)
-                        .bindInstance(RamlModelRepository.of(filePath))
+                        .bindInstance(ramlRepo)
                         .bindInstance(FileWatcher.of(filePath.getParent(), watchFiles))
                         .bind(Validator.class)))
                 .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate("index.html")))
@@ -53,7 +54,7 @@ public class RambleApp {
                                         new WebJarHandler("api-console", "3.0.4"),
                                         new WebJarHandler("livereload-js", "2.2.2"),
                                         Handlers.files(ctx.getServerConfig(), Action.noop()))))
-                        .prefix("api", chain1 -> chain1.all(new RamlRouter()))
+                        .prefix("api", chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
                         .prefix("api-raml", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
                                         new RambleExtensionHandler(),
