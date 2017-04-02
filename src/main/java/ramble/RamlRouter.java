@@ -11,6 +11,7 @@ import org.raml.v2.api.model.v10.resources.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.func.Action;
+import ratpack.func.Predicate;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 import ratpack.handling.Handlers;
@@ -147,12 +148,12 @@ class RamlRouter {
             final Handler chain = Handlers.chain(
                     RequestLogger.ncsa(LOG),
                     requestValidationHandler,
-                    Handlers.when(this::isProxyMode,
+                    Handlers.when(isMode(RambleMode.proxy),
                             Handlers.chain(
                                     requestProxyHandler,
                                     receivedResponseValidationHandler,
                                     receivedResponseForwardHandler)),
-                    Handlers.when(this::isExampleMode, requestExampleHandler));
+                    Handlers.when(isMode(RambleMode.example), requestExampleHandler));
             this.delegate = Handlers.register(registry, chain);
         }
 
@@ -164,17 +165,14 @@ class RamlRouter {
             delegate.handle(ctx);
         }
 
-        private boolean isProxyMode(final Context ctx) {
-            return mode(ctx).equals(RambleMode.proxy);
-        }
-
-        private boolean isExampleMode(final Context ctx) {
-            return mode(ctx).equals(RambleMode.example);
+        private Predicate<Context> isMode(final RambleMode mode) {
+            return ctx -> mode(ctx) == mode;
         }
 
         private RambleMode mode(final Context ctx) {
             final Headers headers = ctx.getRequest().getHeaders();
             final RambleApp.RambleOptions options = ctx.get(RambleApp.RambleOptions.class);
+
             return RambleMode.parse(headers.get(MODE_HEADER)).orElse(options.getMode());
         }
     }
