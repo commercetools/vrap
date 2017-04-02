@@ -1,3 +1,13 @@
+
+ext {
+    versions = [
+            log4j: "2.6.2",
+            ratpack: '1.4.5',
+            slf4j: "1.7.21",
+            spock: "1.0-groovy-2.4",
+    ]
+}
+
 buildscript {
     repositories {
         jcenter()
@@ -31,16 +41,18 @@ dependencies {
 
     compile 'commons-cli:commons-cli:1.4'
     compile 'org.raml:raml-parser-2:1.0.7'
-    compile 'io.ratpack:ratpack-handlebars:1.4.5'
+    compile ratpack.dependency('handlebars')
+
     compile 'org.assertj:assertj-core:3.6.2'
 
-    // Default SLF4J binding.  Note that this is a blocking implementation.
-    // See here for a non blocking appender http://logging.apache.org/log4j/2.x/manual/async.html
-    compile 'org.slf4j:slf4j-simple:1.7.21'
+    runtime "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
+    runtime "org.apache.logging.log4j:log4j-api:${versions.log4j}"
+    runtime "org.apache.logging.log4j:log4j-core:${versions.log4j}"
+    runtime 'com.lmax:disruptor:3.3.2'
 
     compile 'net.incongru.watchservice:barbary-watchservice:1.0'
 
-    testCompile "org.spockframework:spock-core:1.0-groovy-2.4"
+    testCompile "org.spockframework:spock-core:${versions.spock}"
 }
 
 run {
