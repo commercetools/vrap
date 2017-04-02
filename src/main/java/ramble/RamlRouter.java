@@ -1,8 +1,8 @@
 package ramble;
 
 import com.google.common.base.Joiner;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import org.raml.v2.api.model.v10.api.Api;
-import org.raml.v2.api.model.v10.bodies.Response;
 import org.raml.v2.api.model.v10.datamodel.ExampleSpec;
 import org.raml.v2.api.model.v10.datamodel.StringTypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
@@ -14,6 +14,7 @@ import ratpack.func.Action;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 import ratpack.handling.Handlers;
+import ratpack.handling.RequestLogger;
 import ratpack.http.Headers;
 import ratpack.http.Request;
 import ratpack.http.TypedData;
@@ -25,6 +26,7 @@ import ratpack.registry.Registry;
 import java.net.URI;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static ratpack.jackson.Jackson.json;
 
@@ -133,17 +135,24 @@ class RamlRouter {
         private static final String MODE_HEADER = "X-Ramble-Mode";
 
         private final RequestValidationHandler requestValidationHandler = new RequestValidationHandler();
-        private final ProxyRequestHandler proxyRequestHandler = new ProxyRequestHandler();
-        private final ExampleRequestHandler exampleRequestHandler = new ExampleRequestHandler();
+        private final RequestProxyHandler requestProxyHandler = new RequestProxyHandler();
+        private final RequestExampleHandler requestExampleHandler = new RequestExampleHandler();
+        private final ReceivedResponseValidationHandler receivedResponseValidationHandler = new ReceivedResponseValidationHandler();
+        private final ReceivedResponseForwardHandler receivedResponseForwardHandler = new ReceivedResponseForwardHandler();
 
         private final Handler delegate;
 
         public Route(final Resource resource, final Method method) {
             final Registry registry = Registry.builder().add(resource).add(method).build();
             final Handler chain = Handlers.chain(
+                    RequestLogger.ncsa(LOG),
                     requestValidationHandler,
-                    Handlers.when(this::isProxyMode, proxyRequestHandler),
-                    Handlers.when(this::isExampleMode, exampleRequestHandler));
+                    Handlers.when(this::isProxyMode,
+                            Handlers.chain(
+                                    requestProxyHandler,
+                                    receivedResponseValidationHandler,
+                                    receivedResponseForwardHandler)),
+                    Handlers.when(this::isExampleMode, requestExampleHandler));
             this.delegate = Handlers.register(registry, chain);
         }
 
@@ -170,6 +179,13 @@ class RamlRouter {
         }
     }
 
+    /**
+     * This handler validates the request {@link Context#getRequest()} against
+     * the {@link Method} from its context.
+     *
+     * When the validation fails, the validation errors will be sent.
+     * Otherwise the execution is passed to the next handler.
+     */
     private static class RequestValidationHandler implements Handler {
 
         @Override
@@ -191,34 +207,46 @@ class RamlRouter {
         }
     }
 
-    private static class ExampleRequestHandler implements Handler {
+    /**
+     * This handler renders an example for the method {@link Method} registered on its context
+     * for the content type the client requested {@link HttpHeaderNames#ACCEPT}.
+     */
+    private static class RequestExampleHandler implements Handler {
 
         @Override
         public void handle(final Context ctx) throws Exception {
             final Method method = ctx.get(Method.class);
 
-            final Optional<Response> response = method.responses().stream().findFirst();
-            final Optional<ExampleSpec> example = response.flatMap(r -> r.body().stream()
-                    .findFirst()).map(TypeDeclaration::example);
+            final List<TypeDeclaration> bodTypeDeclarations = method.responses().stream()
+                    .flatMap(r -> r.body().stream()).collect(Collectors.toList());
 
-            if (example.isPresent()) {
-                ctx.render(example.get().value());
-            } else {
-                ctx.getResponse().send("No example found.");
-            }
+            final Map<String, ExampleSpec> contentTypeToExample = bodTypeDeclarations.stream()
+                    .collect(Collectors.toMap(TypeDeclaration::name, TypeDeclaration::example));
+
+            ctx.byContent(byContentSpec ->
+                    contentTypeToExample.entrySet().stream()
+                            .forEach(e -> byContentSpec.type(e.getKey(), () -> ctx.render(e.getValue().value()))));
         }
     }
 
-    private static class ProxyRequestHandler implements Handler {
+
+    /**
+     * This handler proxies the request {@link Context#getRequest()} to the base uri and passes
+     * the response and the proxied uri to the next handler.
+     */
+    private static class RequestProxyHandler implements Handler {
+
         @Override
         public void handle(final Context ctx) throws Exception {
             final Request request = ctx.getRequest();
             final TypedData body = ctx.get(TypedData.class);
             final HttpClient httpClient = ctx.get(HttpClient.class);
-            final Validator validator = ctx.get(Validator.class);
             final URI proxiedUri = proxiedUri(ctx);
+            LOG.info("Forward to: {}", proxiedUri);
 
-            httpClient.request(proxiedUri, proxyRequest(body, request)).then(handleReceivedResponse(ctx, validator));
+            httpClient.request(proxiedUri, proxyRequest(body, request))
+                    .then(receivedResponse ->
+                            ctx.next(Registry.builder().add(receivedResponse).add(proxiedUri).build()));
         }
 
         private URI proxiedUri(final Context ctx) {
@@ -239,26 +267,48 @@ class RamlRouter {
             return URI.create(uriStr);
         }
 
-        private Action<ReceivedResponse> handleReceivedResponse(final Context ctx, final Validator validator) {
-            return receivedResponse -> {
-                final Method method = ctx.get(Method.class);
-                final Optional<Validator.ValidationErrors> receivedResponseErrors = validator.validateReceivedResponse(receivedResponse, method);
-
-                if (receivedResponseErrors.isPresent()) {
-                    ctx.getResponse().status(RambleStatus.BAD_GATEWAY);
-                    ctx.render(json(receivedResponseErrors.get()));
-                } else {
-                    receivedResponse.forwardTo(ctx.getResponse());
-                }
-            };
-        }
-
         private Action<RequestSpec> proxyRequest(final TypedData body, final Request request) {
             return spec -> {
                 spec.getBody().buffer(body.getBuffer());
                 spec.getHeaders().copy(request.getHeaders());
                 spec.method(request.getMethod());
             };
+        }
+    }
+
+    /**
+     * This handler forwards the received response from its context to the contexts response.
+     */
+    private static class ReceivedResponseForwardHandler implements Handler {
+
+        @Override
+        public void handle(Context ctx) throws Exception {
+            ctx.get(ReceivedResponse.class).forwardTo(ctx.getResponse());
+        }
+    }
+
+    /**
+     * This handler retrieves the {@link ReceivedResponse} from its context and validates it aginst
+     * the {@link Method} from its context.
+     *
+     * When the validation fails, the validation errors will be sent.
+     * Otherwise the execution is passed to the next handler.
+     */
+    private static class ReceivedResponseValidationHandler implements Handler {
+
+        @Override
+        public void handle(Context ctx) throws Exception {
+            final ReceivedResponse receivedResponse = ctx.get(ReceivedResponse.class);
+            final Validator validator = ctx.get(Validator.class);
+            final Method method = ctx.get(Method.class);
+            final Optional<Validator.ValidationErrors> receivedResponseErrors = validator.validateReceivedResponse(receivedResponse, method);
+
+            if (receivedResponseErrors.isPresent()) {
+                ctx.getResponse().status(RambleStatus.BAD_GATEWAY);
+                ctx.render(json(receivedResponseErrors.get()));
+            } else {
+                ctx.next();
+            }
         }
     }
 }
