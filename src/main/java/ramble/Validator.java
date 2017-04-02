@@ -105,35 +105,24 @@ public class Validator implements Service {
     }
 
     /**
-     * Validates the headers, uri and query parameters of the request of the given context.
+     * Validates the body, headers, uri and query parameters of the request of the given context.
      *
-     * @param context  the context holding the requesz
-     * @param resource the resource to validate the request against
-     * @param method   the method to validate the request aginst
+     * @param context the context holding the requesz
+     * @param body    the request body to validate
+     * @param method  the method to validate the request aginst
      * @return validation errors
      */
-    public Optional<ValidationErrors> validateRequest(final Context context, final Resource resource, final Method method) {
+    public Optional<ValidationErrors> validateRequest(final Context context, final TypedData body, final Method method) {
         final List<ValidationError> errors = new ArrayList<>();
 
         errors.addAll(validateQueryParameters(context.getRequest(), method));
         errors.addAll(validateRequestHeaders(context.getRequest().getHeaders(), method));
-
-        return wrapAndLogErrors(errors);
-    }
-
-    /**
-     * Validates the given request body against the given method.
-     *
-     * @param body   the request body
-     * @param method the method to validate the body against
-     * @return validation errors
-     */
-    public Optional<ValidationErrors> validateRequestBody(final TypedData body, final Method method) {
         final Optional<TypeDeclaration> bodyTypeDeclaration = method.body().stream()
-                .filter(typeDeclaration -> body.getContentType().getType().equals(typeDeclaration.name()))
-                .findFirst();
-        final List<ValidationError> errors = bodyTypeDeclaration.map(typeDeclaration -> validate(body.getText(), typeDeclaration, ValidationKind.body, "request"))
-                .orElse(Collections.emptyList());
+                .filter(typeDeclaration -> body.getContentType().getType().equals(typeDeclaration.name())).findFirst();
+
+        errors.addAll(bodyTypeDeclaration
+                .map(bodyTypeDecl -> validate(body.getText(), bodyTypeDecl, ValidationKind.body, "request"))
+                .orElse(Collections.emptyList()));
 
         return wrapAndLogErrors(errors);
     }
@@ -142,7 +131,7 @@ public class Validator implements Service {
         if (errors.isEmpty()) {
             return Optional.empty();
         } else {
-            final  ValidationErrors validationErrors = new ValidationErrors(errors);
+            final ValidationErrors validationErrors = new ValidationErrors(errors);
             LOG.info("Request has errors: {}", validationErrors);
 
             return Optional.of(validationErrors);

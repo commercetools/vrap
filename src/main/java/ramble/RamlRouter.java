@@ -20,6 +20,7 @@ import ratpack.http.TypedData;
 import ratpack.http.client.HttpClient;
 import ratpack.http.client.ReceivedResponse;
 import ratpack.http.client.RequestSpec;
+import ratpack.registry.Registry;
 
 import java.net.URI;
 import java.util.*;
@@ -57,14 +58,13 @@ class RamlRouter {
 
             for (final Method method : resource.methods()) {
                 if (method.body().isEmpty()) {
-                    final Route route = new Route(api, resource, method, Optional.empty());
+                    final Route route = new Route(resource, method);
                     methodHandlers.put(method, route);
-                }
-                else {
+                } else {
                     final Map<String, Handler> contentTypeHandlers = new HashMap<>();
 
                     for (final TypeDeclaration bodyDeclaration : method.body()) {
-                        final Route route = new Route(api, resource, method, Optional.of(bodyDeclaration));
+                        final Route route = new Route(resource, method);
                         contentTypeHandlers.put(bodyDeclaration.name(), route);
                     }
                     methodHandlers.put(method, Handlers.chain(ctx2 ->
@@ -104,7 +104,7 @@ class RamlRouter {
             return ramlPath;
         }
 
-        for (final TypeDeclaration uriParamDeclaration : resource.uriParameters())  {
+        for (final TypeDeclaration uriParamDeclaration : resource.uriParameters()) {
             String pattern = directoryPattern;
             if (uriParamDeclaration instanceof StringTypeDeclaration) {
                 String uriPattern = ((StringTypeDeclaration) uriParamDeclaration).pattern();
@@ -113,7 +113,7 @@ class RamlRouter {
                     pattern = uriPattern;
                 }
             }
-            ramlPath = ramlPath.replace("{" + uriParamDeclaration.name() + "}", pattern).replace("^","").replace("$","");
+            ramlPath = ramlPath.replace("{" + uriParamDeclaration.name() + "}", pattern).replace("^", "").replace("$", "");
         }
 
 
@@ -132,62 +132,116 @@ class RamlRouter {
         private final static Logger LOG = LoggerFactory.getLogger(Route.class);
         private static final String MODE_HEADER = "X-Ramble-Mode";
 
-        private final Api api;
-        private final Resource resource;
-        private final Method method;
-        private final Optional<TypeDeclaration> bodyDeclaration;
+        private final RequestValidationHandler requestValidationHandler = new RequestValidationHandler();
+        private final ProxyRequestHandler proxyRequestHandler = new ProxyRequestHandler();
+        private final ExampleRequestHandler exampleRequestHandler = new ExampleRequestHandler();
 
-        public Route(final Api api, final Resource resource, final Method method, final Optional<TypeDeclaration> bodyDeclaration) {
-            this.api = api;
-            this.resource = resource;
-            this.method = method;
-            this.bodyDeclaration = bodyDeclaration;
+        private final Handler delegate;
+
+        public Route(final Resource resource, final Method method) {
+            final Registry registry = Registry.builder().add(resource).add(method).build();
+            final Handler chain = Handlers.chain(
+                    requestValidationHandler,
+                    Handlers.when(this::isProxyMode, proxyRequestHandler),
+                    Handlers.when(this::isExampleMode, exampleRequestHandler));
+            this.delegate = Handlers.register(registry, chain);
         }
 
         @Override
         public void handle(final Context ctx) throws Exception {
-            final Request request = ctx.getRequest();
-            final String path = request.getPath();
+            final String path = ctx.getRequest().getPath();
             LOG.debug("Request path: {}", path);
-            final Validator validator = ctx.get(Validator.class);
 
-            final Optional<Validator.ValidationErrors> validationErrors = validator.validateRequest(ctx, resource, method);
+            delegate.handle(ctx);
+        }
+
+        private boolean isProxyMode(final Context ctx) {
+            return mode(ctx).equals(RambleMode.proxy);
+        }
+
+        private boolean isExampleMode(final Context ctx) {
+            return mode(ctx).equals(RambleMode.example);
+        }
+
+        private RambleMode mode(final Context ctx) {
+            final Headers headers = ctx.getRequest().getHeaders();
+            final RambleApp.RambleOptions options = ctx.get(RambleApp.RambleOptions.class);
+            return RambleMode.parse(headers.get(MODE_HEADER)).orElse(options.getMode());
+        }
+    }
+
+    private static class RequestValidationHandler implements Handler {
+
+        @Override
+        public void handle(Context ctx) throws Exception {
+            ctx.getRequest().getBody().then(body -> validateRequest(ctx, body));
+        }
+
+        private void validateRequest(final Context ctx, final TypedData body) {
+            final Validator validator = ctx.get(Validator.class);
+            final Method method = ctx.get(Method.class);
+            final Optional<Validator.ValidationErrors> validationErrors = validator.validateRequest(ctx, body, method);
+
             if (validationErrors.isPresent()) {
                 ctx.getResponse().status(RambleStatus.BAD_REQUEST);
                 ctx.render(json(validationErrors.get()));
             } else {
-                switch (mode(ctx)) {
-                    case proxy:
-                        proxyRequest(ctx);
-                        break;
-                    case example:
-                        exampleRequest(ctx);
-                        break;
-                }
+                ctx.next(Registry.single(body));
             }
         }
+    }
 
-        private void proxyRequest(final Context ctx) {
-            ctx.getRequest().getBody().then(body -> streamValidatedBody(ctx, body));
-        }
+    private static class ExampleRequestHandler implements Handler {
 
-        private void streamValidatedBody(final Context ctx, final TypedData body) {
-            final Validator validator = ctx.get(Validator.class);
-            final Optional<Validator.ValidationErrors> validationErrors = validator.validateRequestBody(body, method);
+        @Override
+        public void handle(final Context ctx) throws Exception {
+            final Method method = ctx.get(Method.class);
 
-            if (validationErrors.isPresent()) {
-                ctx.getResponse().status(RambleStatus.BAD_REQUEST);
-                ctx.render(json(validationErrors.get()));
+            final Optional<Response> response = method.responses().stream().findFirst();
+            final Optional<ExampleSpec> example = response.flatMap(r -> r.body().stream()
+                    .findFirst()).map(TypeDeclaration::example);
+
+            if (example.isPresent()) {
+                ctx.render(example.get().value());
             } else {
-                final Request request = ctx.getRequest();
-                final HttpClient httpClient = ctx.get(HttpClient.class);
-                final URI proxiedUri = proxiedUri(ctx);
-                httpClient.request(proxiedUri, proxyRequest(body, request)).then(handleReceivedResponse(ctx, validator));
+                ctx.getResponse().send("No example found.");
             }
+        }
+    }
+
+    private static class ProxyRequestHandler implements Handler {
+        @Override
+        public void handle(final Context ctx) throws Exception {
+            final Request request = ctx.getRequest();
+            final TypedData body = ctx.get(TypedData.class);
+            final HttpClient httpClient = ctx.get(HttpClient.class);
+            final Validator validator = ctx.get(Validator.class);
+            final URI proxiedUri = proxiedUri(ctx);
+
+            httpClient.request(proxiedUri, proxyRequest(body, request)).then(handleReceivedResponse(ctx, validator));
+        }
+
+        private URI proxiedUri(final Context ctx) {
+            final Api api = ctx.get(RamlModelRepository.class).getApi();
+
+            final RambleApp.RambleOptions options = ctx.get(RambleApp.RambleOptions.class);
+
+            final Request request = ctx.getRequest();
+            final String query = request.getQuery();
+            final String boundPath = request.getPath().replaceAll("^api/", "") + (!query.isEmpty() ? "?" + query : "");
+
+            final String baseUri = options.getApiUrl().orElse(api.baseUri().value());
+
+            final String uriStr = baseUri.endsWith("/") ?
+                    baseUri + boundPath :
+                    Joiner.on("/").join(baseUri, boundPath);
+
+            return URI.create(uriStr);
         }
 
         private Action<ReceivedResponse> handleReceivedResponse(final Context ctx, final Validator validator) {
             return receivedResponse -> {
+                final Method method = ctx.get(Method.class);
                 final Optional<Validator.ValidationErrors> receivedResponseErrors = validator.validateReceivedResponse(receivedResponse, method);
 
                 if (receivedResponseErrors.isPresent()) {
@@ -205,48 +259,6 @@ class RamlRouter {
                 spec.getHeaders().copy(request.getHeaders());
                 spec.method(request.getMethod());
             };
-        }
-
-        private void exampleRequest(final Context ctx) {
-            ctx.getRequest().getBody().then(body -> streamExample(ctx, body));
-        }
-
-        private void streamExample(final Context ctx, final TypedData body) {
-            final Validator validator = ctx.get(Validator.class);
-            final Optional<Validator.ValidationErrors> validationErrors = validator.validateRequestBody(body, method);
-
-            if (validationErrors.isPresent()) {
-                ctx.getResponse().status(RambleStatus.BAD_REQUEST);
-                ctx.render(json(validationErrors.get()));
-            } else {
-                final Optional<Response> response = method.responses().stream().findFirst();
-                final Optional<ExampleSpec> example = response.flatMap(r -> r.body().stream()
-                        .findFirst()).map(TypeDeclaration::example);
-
-                if (example.isPresent()) {
-                    ctx.render(example.get().value());
-                } else {
-                    ctx.getResponse().send("No example found.");
-                }
-            }
-        }
-
-        private RambleMode mode(final Context ctx) {
-            final Headers headers = ctx.getRequest().getHeaders();
-            final RambleApp.RambleOptions options = ctx.get(RambleApp.RambleOptions.class);
-            return RambleMode.parse(headers.get(MODE_HEADER)).orElse(options.getMode());
-        }
-
-        private URI proxiedUri(final Context ctx) {
-            final RambleApp.RambleOptions options = ctx.get(RambleApp.RambleOptions.class);
-            final Request request = ctx.getRequest();
-            final String query = request.getQuery();
-            final String boundPath = request.getPath().replaceAll("^api/" , "") + (!query.isEmpty() ? "?" + query : "");
-            final String baseUri = options.getApiUrl().orElse(api.baseUri().value());
-            final String uriStr = baseUri.endsWith("/") ?
-                    baseUri + boundPath :
-                    Joiner.on("/").join(baseUri, boundPath);
-            return URI.create(uriStr);
         }
     }
 }
