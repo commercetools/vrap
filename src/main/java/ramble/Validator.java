@@ -4,6 +4,8 @@ import org.raml.v2.api.model.common.ValidationResult;
 import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.resources.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ratpack.handling.Context;
 import ratpack.http.Headers;
 import ratpack.http.MediaType;
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
  * Provides validation of ratpack requests and received responses against a raml specification.
  */
 public class Validator implements Service {
+    private final static Logger LOG = LoggerFactory.getLogger(Validator.class);
 
     public enum ValidationKind {
         uriParameter,
@@ -57,6 +60,15 @@ public class Validator implements Service {
         public Object getResponseBody() {
             return responseBody;
         }
+
+        @Override
+        public String toString() {
+            return "ValidationErrors{" +
+                    "errors=" + errors +
+                    ", responseStatusCode=" + responseStatusCode +
+                    ", responseBody=" + responseBody +
+                    '}';
+        }
     }
 
     public static class ValidationError {
@@ -81,6 +93,15 @@ public class Validator implements Service {
         public String getMessage() {
             return message;
         }
+
+        @Override
+        public String toString() {
+            return "ValidationError{" +
+                    "kind=" + kind +
+                    ", context='" + context + '\'' +
+                    ", message='" + message + '\'' +
+                    '}';
+        }
     }
 
     /**
@@ -94,13 +115,10 @@ public class Validator implements Service {
     public Optional<ValidationErrors> validateRequest(final Context context, final Resource resource, final Method method) {
         final List<ValidationError> errors = new ArrayList<>();
 
-//        errors.addAll(validateUriParameters(context.getAllPathTokens(), resource));
         errors.addAll(validateQueryParameters(context.getRequest(), method));
         errors.addAll(validateRequestHeaders(context.getRequest().getHeaders(), method));
 
-        return errors.isEmpty() ?
-                Optional.empty() :
-                Optional.of(new ValidationErrors(errors));
+        return wrapAndLogErrors(errors);
     }
 
     /**
@@ -117,9 +135,18 @@ public class Validator implements Service {
         final List<ValidationError> errors = bodyTypeDeclaration.map(typeDeclaration -> validate(body.getText(), typeDeclaration, ValidationKind.body, "request"))
                 .orElse(Collections.emptyList());
 
-        return errors.isEmpty() ?
-                Optional.empty() :
-                Optional.of(new ValidationErrors(errors));
+        return wrapAndLogErrors(errors);
+    }
+
+    private Optional<ValidationErrors> wrapAndLogErrors(List<ValidationError> errors) {
+        if (errors.isEmpty()) {
+            return Optional.empty();
+        } else {
+            final  ValidationErrors validationErrors = new ValidationErrors(errors);
+            LOG.info("Request has errors: {}", validationErrors);
+
+            return Optional.of(validationErrors);
+        }
     }
 
     /**
@@ -142,9 +169,14 @@ public class Validator implements Service {
                 .orElse(Collections.emptyList());
         final String bodyValue = receivedResponse.getBody().getText();
 
-        return errors.isEmpty() ?
-                Optional.empty() :
-                Optional.of(new ValidationErrors(errors, receivedResponse.getStatusCode(), bodyValue));
+        if (errors.isEmpty()) {
+            return Optional.empty();
+        } else {
+            final ValidationErrors validationErrors = new ValidationErrors(errors, receivedResponse.getStatusCode(), bodyValue);
+            LOG.info("Received response has errors: {}", validationErrors);
+
+            return Optional.of(validationErrors);
+        }
     }
 
     private List<ValidationError> validateUriParameters(final PathTokens allPathTokens, final Resource resource) {
