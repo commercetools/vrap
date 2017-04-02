@@ -1,10 +1,9 @@
-
 ext {
     versions = [
-            log4j: "2.6.2",
+            log4j  : "2.6.2",
             ratpack: '1.4.5',
-            slf4j: "1.7.21",
-            spock: "1.0-groovy-2.4",
+            slf4j  : "1.7.21",
+            spock  : "1.0-groovy-2.4",
     ]
 }
 
@@ -15,21 +14,20 @@ buildscript {
     dependencies {
         classpath "io.ratpack:ratpack-gradle:1.4.5"
         classpath "com.github.jengelman.gradle.plugins:shadow:1.2.3"
+        classpath "se.transmode.gradle:gradle-docker:1.2"
     }
 }
 
 apply plugin: 'java'
-apply plugin: "io.ratpack.ratpack-java"
-apply plugin: "idea"
-apply plugin: "com.github.johnrengelman.shadow"
 
 if (!JavaVersion.current().java8Compatible) {
     throw new IllegalStateException("Must be built with Java 8 or higher")
 }
 
-// The “ratpack” plugin applies the “application” plugin, making it easy to create a standalone application.
-// See: http://gradle.org/docs/current/userguide/application_plugin.html
 apply plugin: "io.ratpack.ratpack-java"
+apply plugin: "idea"
+apply plugin: "com.github.johnrengelman.shadow"
+apply plugin: "docker"
 
 repositories {
     jcenter()
@@ -55,9 +53,28 @@ dependencies {
     testCompile "org.spockframework:spock-core:${versions.spock}"
 }
 
+mainClassName = "ramble.RambleApp"
+
 run {
     if (project.hasProperty("cliArgs")) {
         args(cliArgs.split(","))
     }
 }
-mainClassName = "ramble.RambleApp"
+
+task buildDocker(type: Docker) {
+    baseImage = 'java:openjdk-8-jre'
+    maintainer = 'Matthias Köster "matthias.koester@gmail.com"'
+    tag = 'ramble'
+    addFile {
+        from shadowJar
+        rename {
+            'ramble.jar'
+        }
+    }
+
+    exposePort(5050)
+
+    entryPoint(["java", "-jar", "/ramble.jar"])
+}
+
+buildDocker.dependsOn(shadowJar)
