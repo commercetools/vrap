@@ -141,7 +141,7 @@ public class RambleApp {
         private void printHelp()
         {
             final HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp("ramble [-m <mode>] <file.raml>", options);
+            formatter.printHelp("ramble [OPTIONS] <file.raml>", options);
         }
 
         private RambleMode parseModeOption(String value)
