@@ -22,6 +22,27 @@ java -jar build/libs/ramble-all.jar <path-to-raml-file>
 ./gradlew run --PcliArgs=<path-to-raml-file>
 ```
 
+### Usage with Docker
+
+#### Build the image
+
+```bash
+./docker_build.sh
+```
+
+or
+
+```bash
+docker run -v ${PWD}:/src -w /src openjdk:8-alpine ./gradlew shadowJar
+docker build -t ramble .
+```
+
+#### Run the docker image
+
+```bash
+docker run -v<RAML-source-directory>:/api -p5050:5050 ramble /api/api.raml 
+```
+
 ## End points
 
 - API browser [http://localhost:5050/api-raml/]()
