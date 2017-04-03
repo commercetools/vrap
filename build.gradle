@@ -62,19 +62,19 @@ run {
 }
 
 task buildDocker(type: Docker) {
-    baseImage = 'java:openjdk-8-jre'
+    baseImage = 'openjdk:8-jre-alpine'
     maintainer = 'Matthias Köster "matthias.koester@gmail.com"'
-    tag = 'ramble'
+    tag = 'vrap'
     addFile {
         from shadowJar
         rename {
-            'ramble.jar'
+            'vrap.jar'
         }
     }
 
     exposePort(5050)
 
-    entryPoint(["java", "-jar", "/ramble.jar"])
+    entryPoint(["java", "-jar", "/vrap.jar"])
 }
 
 buildDocker.dependsOn(shadowJar)

@@ -1,6 +1,8 @@
-# RAML proxy and mock server
+# VRAP
+ 
+Validating REST API proxy
 
-## Running ramble locally
+## Running vrap locally
 
 ### Run from shadow/fat jar
 
@@ -13,7 +15,7 @@ Build shadow jar with gradle:
 Then run built shadow with java:
 
 ```
-java -jar build/libs/ramble-all.jar <path-to-raml-file>
+java -jar build/libs/vrap-all.jar <path-to-raml-file>
 ```
 
 ### Directly via gradle
@@ -33,14 +35,14 @@ java -jar build/libs/ramble-all.jar <path-to-raml-file>
 or
 
 ```bash
-docker run -v ${PWD}:/ramble -w /ramble openjdk:8-alpine ./gradlew shadowJar
-docker build -t ramble .
+docker run -v ${PWD}:/vrap -w /vrap openjdk:8-alpine ./gradlew shadowJar
+docker build -t vrap .
 ```
 
 #### Run the docker image
 
 ```bash
-docker run -v<RAML-source-directory>:/api -p5050:5050 ramble /api/api.raml 
+docker run -v<RAML-source-directory>:/api -p5050:5050 vrap /api/api.raml 
 ```
 
 ## End points

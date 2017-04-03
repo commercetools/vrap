@@ -2,7 +2,7 @@ FROM openjdk:8-jre-alpine
 
 WORKDIR /app
 
-ADD build/libs/ramble-all.jar /app/ramble.jar
+ADD build/libs/vrap-all.jar /app/vrap.jar
 
 EXPOSE 5050
-ENTRYPOINT ["java", "-jar", "ramble.jar"]
+ENTRYPOINT ["java", "-jar", "vrap.jar"]
