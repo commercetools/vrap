@@ -1,0 +1,43 @@
+#%RAML 1.0
+
+title: REST-Countries
+description: Get information about countries via a RESTful API
+baseUri: https://restcountries.eu/rest/v2
+
+mediaType:
+    application/json
+
+types:
+    Country:
+        type: object
+        properties:
+            name : string
+            capital: string
+            region: string
+            population: number
+            latlng: number[]
+
+/all:
+    get:
+        responses:
+            200:
+                body:
+                    type: Country[]
+
+/name:
+    /{name}:
+        get:
+            queryParameters:
+                fullText?:
+                    type: boolean
+
+            responses:
+                200:
+                    body:
+                        type: Country[]
+
+/alpha:
+    get:
+        queryParameters:
+            codes:
+                type: string

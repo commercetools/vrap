@@ -4,7 +4,8 @@ title: Songs example
 baseUri: http://localhost:5050/api
 
 mediaType:
-    application/json
+    - application/json
+    - application/xml
 
 /songs:
   description: Collection of available songs in Jukebox
@@ -22,23 +23,28 @@ mediaType:
         required: false
         example: 2
     responses:
-      200:
-        body:
-            example: |
-              "songs": [
-                  {
-                    "songId": "550e8400-e29b-41d4-a716-446655440000",
-                    "songTitle": "Get Lucky"
-                  },
-                  {
-                    "songId": "550e8400-e29b-41d4-a716-446655440111",
-                    "songTitle": "Loose yourself to dance"
-                  },
-                  {
-                    "songId": "550e8400-e29b-41d4-a716-446655440222",
-                    "songTitle": "Gio sorgio by Moroder"
-                  }
-                  ]
+        200:
+            body:
+                application/json:
+                    example: |
+                        "songs": [
+                            {
+                                "songId": "550e8400-e29b-41d4-a716-446655440000",
+                                "songTitle": "Get Lucky"
+                            },
+                            {
+                                "songId": "550e8400-e29b-41d4-a716-446655440111",
+                                "songTitle": "Loose yourself to dance"
+                            }
+                        ]
+                application/xml:
+                    example: |
+                        <songs>
+                            <song songId="550e8400-e29b-41d4-a716-446655440000" songTitle="Get Lucky">
+                            </song>
+                            <song songId="550e8400-e29b-41d4-a716-446655440111" songTitle"Loose yourself to dance">
+                            </song>
+                        </songs>
   /{songId}:
     description: Song entity
     uriParameters:
