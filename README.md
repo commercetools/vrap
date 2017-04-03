@@ -33,7 +33,7 @@ java -jar build/libs/ramble-all.jar <path-to-raml-file>
 or
 
 ```bash
-docker run -v ${PWD}:/src -w /src openjdk:8-alpine ./gradlew shadowJar
+docker run -v ${PWD}:/ramble -w /ramble openjdk:8-alpine ./gradlew shadowJar
 docker build -t ramble .
 ```
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo "Building artifact:"
-docker run -v ${PWD}:/src -w /src openjdk:8-alpine ./gradlew shadowJar
+docker run -v ${PWD}:/ramble -w /ramble openjdk:8-alpine ./gradlew shadowJar
 echo "Done."
 
 echo "Build runtime container:"
