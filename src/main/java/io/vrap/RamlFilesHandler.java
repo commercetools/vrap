@@ -75,7 +75,7 @@ class RamlFilesHandler implements Handler {
                 ImmutableMap.of("fileName", fileName,
                         "fileContent", contentWithIncludeLinks,
                         "apiTitle", api.title().value(),
-                        "rambleUri", "http://localhost:" + port.toString());
+                        "proxyUri", "http://localhost:" + port.toString());
         ctx.render(handlebarsTemplate(model, "api-raml/raml.html"));
     }
 }

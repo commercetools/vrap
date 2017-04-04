@@ -1,14 +1,14 @@
 #%RAML 1.0 Extension
-usage: Adds ramble specific headers
+usage: Adds vrap specific headers
 extends: {{fileName}}?{{queryParams}}
-baseUri: {{rambleUri}}/api
+baseUri: {{proxyUri}}/api
 {{#each resourceExtensions}}
 {{indent}}{{resourcePath}}:
 {{indent}}{{#each methods}}
 {{indent}}    {{method}}:
 {{indent}}       headers:
-{{indent}}           X-Ramble-Mode?:
-{{indent}}               displayName: Ramble mode
+{{indent}}           X-Vrap-Mode?:
+{{indent}}               displayName: Vrap mode
 {{indent}}               enum: [ {{modes}} ]
 {{/each}}
 {{/each}}

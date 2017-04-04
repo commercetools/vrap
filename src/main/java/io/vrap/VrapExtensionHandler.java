@@ -18,10 +18,10 @@ import java.util.stream.Collectors;
 import static ratpack.handlebars.Template.handlebarsTemplate;
 
 /**
- * Serves the ramble extension which extends the raml api specification with ramble mode headers.
+ * Serves the vrap extension which extends the raml api specification with vrap mode headers.
  */
-class RambleExtensionHandler implements Handler {
-    private final static Logger LOG = LoggerFactory.getLogger(RambleExtensionHandler.class);
+class VrapExtensionHandler implements Handler {
+    private final static Logger LOG = LoggerFactory.getLogger(VrapExtensionHandler.class);
 
     @Override
     public void handle(final Context ctx) throws Exception {
@@ -29,7 +29,7 @@ class RambleExtensionHandler implements Handler {
         final Api api = ramlModelRepository.getApi();
         final String path = ctx.getPathBinding().getPastBinding();
 
-        if (path.equals("Ramble-Extension.raml")) {
+        if (path.equals("Vrap-Extension.raml")) {
             final Path filePath = ramlModelRepository.getFilePath();
             List<ResourceExtension> resourceExtensions = resourceExtensions(api.resources(), "");
             final Integer port = ctx.getServerConfig().getPort();
@@ -37,11 +37,11 @@ class RambleExtensionHandler implements Handler {
                     ImmutableMap.of("fileName", filePath.getFileName(),
                             "queryParams", ctx.getRequest().getQuery(),
                             "resourceExtensions", resourceExtensions,
-                            "rambleUri", "http://localhost:" + port.toString());
+                            "proxyUri", "http://localhost:" + port.toString());
 
             ctx.byContent(byContentSpec -> byContentSpec
-                    .html(() -> ctx.render(handlebarsTemplate(model, "api-raml/Ramble-Extension.html")))
-                    .noMatch(() -> ctx.render(handlebarsTemplate(model, "api-raml/Ramble-Extension.raml"))));
+                    .html(() -> ctx.render(handlebarsTemplate(model, "api-raml/Vrap-Extension.html")))
+                    .noMatch(() -> ctx.render(handlebarsTemplate(model, "api-raml/Vrap-Extension.raml"))));
         } else {
             ctx.next();
         }
@@ -88,7 +88,7 @@ class RambleExtensionHandler implements Handler {
 
         public ResourceExtensionMethod(final String method) {
             this.method = method;
-            this.modes = Joiner.on(", ").join(RambleMode.values());
+            this.modes = Joiner.on(", ").join(VrapMode.values());
         }
 
         public String getMethod() {

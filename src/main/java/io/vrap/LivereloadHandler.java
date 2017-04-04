@@ -72,7 +72,7 @@ class LivereloadHandler implements WebSocketHandler<String> {
             case "hello":
                 final HelloMessage helloRequest = (HelloMessage) request;
                 final HelloMessage helloResponse = new HelloMessage();
-                helloResponse.setServerName("Ramble server");
+                helloResponse.setServerName("Vrap server");
                 helloResponse.setProtocols(helloRequest.protocols);
 
                 this.fileWatcher.lastModified().then(fileTime -> reload(frame.getConnection(), fileTime));

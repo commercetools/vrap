@@ -133,7 +133,7 @@ class RamlRouter {
 
     static class Route implements Handler {
         private final static Logger LOG = LoggerFactory.getLogger(Route.class);
-        private static final String MODE_HEADER = "X-Ramble-Mode";
+        private static final String MODE_HEADER = "X-Vrap-Mode";
 
         private final RequestValidationHandler requestValidationHandler = new RequestValidationHandler();
         private final RequestProxyHandler requestProxyHandler = new RequestProxyHandler();
@@ -148,12 +148,12 @@ class RamlRouter {
             final Handler chain = Handlers.chain(
                     RequestLogger.ncsa(LOG),
                     requestValidationHandler,
-                    Handlers.when(isMode(RambleMode.proxy),
+                    Handlers.when(isMode(VrapMode.proxy),
                             Handlers.chain(
                                     requestProxyHandler,
                                     receivedResponseValidationHandler,
                                     receivedResponseForwardHandler)),
-                    Handlers.when(isMode(RambleMode.example), requestExampleHandler));
+                    Handlers.when(isMode(VrapMode.example), requestExampleHandler));
             this.delegate = Handlers.register(registry, chain);
         }
 
@@ -165,15 +165,15 @@ class RamlRouter {
             delegate.handle(ctx);
         }
 
-        private Predicate<Context> isMode(final RambleMode mode) {
+        private Predicate<Context> isMode(final VrapMode mode) {
             return ctx -> mode(ctx) == mode;
         }
 
-        private RambleMode mode(final Context ctx) {
+        private VrapMode mode(final Context ctx) {
             final Headers headers = ctx.getRequest().getHeaders();
-            final RambleApp.RambleOptions options = ctx.get(RambleApp.RambleOptions.class);
+            final VrapApp.VrapOptions options = ctx.get(VrapApp.VrapOptions.class);
 
-            return RambleMode.parse(headers.get(MODE_HEADER)).orElse(options.getMode());
+            return VrapMode.parse(headers.get(MODE_HEADER)).orElse(options.getMode());
         }
     }
 
@@ -197,7 +197,7 @@ class RamlRouter {
             final Optional<Validator.ValidationErrors> validationErrors = validator.validateRequest(ctx, body, method);
 
             if (validationErrors.isPresent()) {
-                ctx.getResponse().status(RambleStatus.BAD_REQUEST);
+                ctx.getResponse().status(VrapStatus.BAD_REQUEST);
                 ctx.render(json(validationErrors.get()));
             } else {
                 ctx.next(Registry.single(body));
@@ -250,7 +250,7 @@ class RamlRouter {
         private URI proxiedUri(final Context ctx) {
             final Api api = ctx.get(RamlModelRepository.class).getApi();
 
-            final RambleApp.RambleOptions options = ctx.get(RambleApp.RambleOptions.class);
+            final VrapApp.VrapOptions options = ctx.get(VrapApp.VrapOptions.class);
 
             final Request request = ctx.getRequest();
             final String query = request.getQuery();
@@ -302,7 +302,7 @@ class RamlRouter {
             final Optional<Validator.ValidationErrors> receivedResponseErrors = validator.validateReceivedResponse(receivedResponse, method);
 
             if (receivedResponseErrors.isPresent()) {
-                ctx.getResponse().status(RambleStatus.BAD_GATEWAY);
+                ctx.getResponse().status(VrapStatus.BAD_GATEWAY);
                 ctx.render(json(receivedResponseErrors.get()));
             } else {
                 ctx.next();

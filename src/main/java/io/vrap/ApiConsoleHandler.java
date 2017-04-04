@@ -25,10 +25,10 @@ class ApiConsoleHandler implements Handler {
             final Integer port = ctx.getServerConfig().getPort();
             final ImmutableMap<String, Object> model =
                     ImmutableMap.of(
-                            "ramlPath", "api-raml/Ramble-Extension.raml",
+                            "ramlPath", "api-raml/Vrap-Extension.raml",
                             "queryParams", queryParams,
-                            "rambleHost", "localhost",
-                            "ramblePort", port
+                            "proxyHost", "localhost",
+                            "proxyPort", port
                     );
             ctx.render(handlebarsTemplate(model, "api-console/index.html"));
         }

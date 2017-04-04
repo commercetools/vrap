@@ -20,14 +20,14 @@ import org.apache.commons.cli.*;
 import static ratpack.handlebars.Template.handlebarsTemplate;
 
 /**
- * The ramble app.
+ * The vrap app.
  */
-public class RambleApp {
-    private static Logger LOG = LoggerFactory.getLogger(RambleApp.class);
+public class VrapApp {
+    private static Logger LOG = LoggerFactory.getLogger(VrapApp.class);
 
     public static void main(String[] args) throws Exception {
 
-        final RambleOptions options = new RambleOptions(args);
+        final VrapOptions options = new VrapOptions(args);
 
         final Path filePath = options.getFilePath();
         final Path fileName = filePath.getFileName();
@@ -57,19 +57,19 @@ public class RambleApp {
                         .prefix("api", chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
                         .prefix("api-raml", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
-                                        new RambleExtensionHandler(),
+                                        new VrapExtensionHandler(),
                                         new RamlFilesHandler(contentModifier))))));
                         // .get("livereload", ctx -> WebSockets.websocket(ctx, new LivereloadHandler(ctx, filePath)))));
     }
 
-    static class RambleOptions {
+    static class VrapOptions {
         private Path filePath;
-        private RambleMode mode;
+        private VrapMode mode;
         private int port;
         private final Options options;
         private String apiUrl;
 
-        public RambleOptions(String[] args)
+        public VrapOptions(String[] args)
         {
             final CommandLine cmd;
             final CommandLineParser parser = new DefaultParser();
@@ -86,7 +86,7 @@ public class RambleApp {
                 return;
             }
 
-            mode = parseModeOption(cmd.getOptionValue(getModeOption().getOpt(), RambleMode.proxy.name()));
+            mode = parseModeOption(cmd.getOptionValue(getModeOption().getOpt(), VrapMode.proxy.name()));
             port = NumberUtils.toInt(cmd.getOptionValue(getPortOption().getOpt()), 5050);
             apiUrl = cmd.getOptionValue(getApiUrlOption().getOpt());
 
@@ -112,7 +112,7 @@ public class RambleApp {
         {
             return Option.builder("m")
                     .argName("mode")
-                    .desc("ramble mode: " + Arrays.toString(RambleMode.values()))
+                    .desc("vrap mode: " + Arrays.toString(VrapMode.values()))
                     .hasArg(true)
                     .required(false)
                     .build();
@@ -141,18 +141,18 @@ public class RambleApp {
         private void printHelp()
         {
             final HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp("ramble [OPTIONS] <file.raml>", options);
+            formatter.printHelp("vrap [OPTIONS] <file.raml>", options);
         }
 
-        private RambleMode parseModeOption(String value)
+        private VrapMode parseModeOption(String value)
         {
-            Optional<RambleMode> mode = RambleMode.parse(value);
+            Optional<VrapMode> mode = VrapMode.parse(value);
 
             if (mode.isPresent()) {
                 return mode.get();
             }
 
-            System.out.println("Unknown ramble mode: " + value);
+            System.out.println("Unknown vrap mode: " + value);
             printHelp();
             System.exit(1);
             return null;
@@ -162,7 +162,7 @@ public class RambleApp {
             return filePath;
         }
 
-        public RambleMode getMode() {
+        public VrapMode getMode() {
             return mode;
         }
 

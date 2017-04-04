@@ -31,7 +31,7 @@ class WebJarHandler implements Handler {
     private static final String DEFAULT_INCLUDE_PATH = "dist";
 
     /**
-     * If ramble is running from a shadow/flat jar, the webjars will be directly available on the classpath.
+     * If vrap is running from a shadow/flat jar, the webjars will be directly available on the classpath.
      *
      * In this case the jar file system will be empty.
      */
@@ -56,7 +56,7 @@ class WebJarHandler implements Handler {
     }
 
     /**
-     * If ramble is running from a shadow/flat jar, the webjars will be directly available on the classpath.
+     * If vrap is running from a shadow/flat jar, the webjars will be directly available on the classpath.
      * In this case the jar file system will be empty and the returned uri optional uri will be empty.
      *
      * @param moduleName the module name

@@ -6,9 +6,9 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
- * Enumerates the mode in which ramble can operate.
+ * Enumerates the mode in which vrap can operate.
  */
-public enum RambleMode {
+public enum VrapMode {
     /**
      * Serves example responses.
      */
@@ -18,7 +18,7 @@ public enum RambleMode {
      */
     proxy;
 
-    public static Optional<RambleMode> parse(String value)
+    public static Optional<VrapMode> parse(String value)
     {
         return Optional.ofNullable(value)
                 .map(o -> Stream.of(values())

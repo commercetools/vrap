@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Ramble-Extension.raml</title>
-    <base href="{{rambleUri}}/api-raml/"></head>
+    <title>Vrap-Extension.raml</title>
+    <base href="{{proxyUri}}/api-raml/"></head>
 <style>
 body {
     color: #888;
@@ -23,10 +23,10 @@ body {
     <script>hljs.initHighlightingOnLoad();</script>
 </head>
 <body>
-    <h1 class="title">Ramble-Extension.raml</h1>
+    <h1 class="title">Vrap-Extension.raml</h1>
     <pre><code>
 #%RAML 1.0 Extension
-usage: Adds ramble specific headers
+usage: Adds vrap specific headers
 extends: {{fileName}}?{{queryParams}}
 
 {{#each resourceExtensions}}
@@ -34,8 +34,8 @@ extends: {{fileName}}?{{queryParams}}
 {{indent}}{{#each methods}}
 {{indent}}    {{method}}:
 {{indent}}       headers:
-{{indent}}           X-Ramble-Mode:
-{{indent}}               displayName: Ramble mode
+{{indent}}           X-Vrap-Mode:
+{{indent}}               displayName: Vrap mode
 {{indent}}               enum: [ {{modes}} ]
 {{/each}}
 {{/each}}
