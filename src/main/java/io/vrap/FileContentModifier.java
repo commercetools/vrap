@@ -1,4 +1,4 @@
-package ramble;
+package io.vrap;
 
 import java.util.Objects;
 import java.util.function.Function;

@@ -1,4 +1,4 @@
-package ramble;
+package io.vrap;
 
 import org.raml.v2.api.model.common.ValidationResult;
 import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;

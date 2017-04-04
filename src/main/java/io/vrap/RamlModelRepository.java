@@ -1,4 +1,4 @@
-package ramble;
+package io.vrap;
 
 import org.raml.v2.api.RamlModelBuilder;
 import org.raml.v2.api.RamlModelResult;
@@ -6,9 +6,7 @@ import org.raml.v2.api.model.common.ValidationResult;
 import org.raml.v2.api.model.v10.api.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ratpack.handling.Handler;
 import ratpack.service.Service;
-import ratpack.service.StartEvent;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

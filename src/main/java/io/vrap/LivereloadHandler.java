@@ -1,4 +1,4 @@
-package ramble;
+package io.vrap;
 
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.ObjectMapper;

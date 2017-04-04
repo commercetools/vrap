@@ -1,4 +1,4 @@
-package ramble;
+package io.vrap;
 
 import org.junit.Rule;
 import org.junit.Test;

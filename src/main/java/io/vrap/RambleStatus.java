@@ -1,4 +1,4 @@
-package ramble;
+package io.vrap;
 
 import ratpack.http.Status;
 
