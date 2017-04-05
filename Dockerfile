@@ -5,4 +5,5 @@ WORKDIR /app
 ADD build/libs/vrap-all.jar /app/vrap.jar
 
 EXPOSE 5050
-ENTRYPOINT ["java", "-jar", "vrap.jar"]
+ENTRYPOINT ["java"]
+CMD ["-jar", "vrap.jar"]
