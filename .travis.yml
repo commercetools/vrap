@@ -1,0 +1,14 @@
+language: java
+jdk:
+- openjdk8
+
+services:
+  - docker
+
+before_scripts:
+  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+
+scripts:
+  - ./gradlew shadowJar
+  - docker build -t vrapio/vrap
+  - docker push vrapio/vrap
