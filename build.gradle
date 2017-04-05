@@ -53,7 +53,7 @@ dependencies {
     testCompile "org.spockframework:spock-core:${versions.spock}"
 }
 
-mainClassName = "VrapApp"
+mainClassName = "io.vrap.VrapApp"
 
 run {
     if (project.hasProperty("cliArgs")) {

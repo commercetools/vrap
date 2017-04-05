@@ -21,7 +21,7 @@ java -jar build/libs/vrap-all.jar <path-to-raml-file>
 ### Directly via gradle
 
 ```
-./gradlew run --PcliArgs=<path-to-raml-file>
+./gradlew run -PcliArgs=<path-to-raml-file>
 ```
 
 ### Usage with Docker
