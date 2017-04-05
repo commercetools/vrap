@@ -38,8 +38,8 @@ public class VrapApp {
 
         final Path filePath = options.getFilePath();
         final Path fileName = filePath.getFileName();
-
-        if (System.getenv("DISABLE_SSL_VERIFICATION").equals("true")) {
+        
+        if (Optional.ofNullable(System.getenv("DISABLE_SSL_VERIFICATION")).orElse("false").equals("true")) {
             SSLContext sslContext = SSLContext.getInstance("SSL");
             javax.net.ssl.TrustManager[] trustManagers = {
                     new X509TrustManager() {
