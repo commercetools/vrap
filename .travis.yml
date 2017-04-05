@@ -5,10 +5,12 @@ jdk:
 services:
   - docker
 
-before_scripts:
-  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-
-scripts:
+script:
   - ./gradlew shadowJar
-  - docker build -t vrapio/vrap
-  - docker push vrapio/vrap
+  - docker build -t vrapio/vrap .
+
+after_success:
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+    docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+    docker push USER/REPO;
+    fi
