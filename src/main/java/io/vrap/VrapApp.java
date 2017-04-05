@@ -7,15 +7,22 @@ import ratpack.func.Action;
 import ratpack.guice.Guice;
 import ratpack.handlebars.HandlebarsModule;
 import ratpack.handling.Handlers;
+import ratpack.http.client.HttpClient;
 import ratpack.server.RatpackServer;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.cli.*;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
 
 import static ratpack.handlebars.Template.handlebarsTemplate;
 
@@ -31,6 +38,23 @@ public class VrapApp {
 
         final Path filePath = options.getFilePath();
         final Path fileName = filePath.getFileName();
+
+        if (System.getenv("DISABLE_SSL_VERIFICATION").equals("true")) {
+            SSLContext sslContext = SSLContext.getInstance("SSL");
+            javax.net.ssl.TrustManager[] trustManagers = {
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return null;
+                        }
+                        public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+                        }
+                        public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+                        }
+                    }
+            };
+            sslContext.init(null, trustManagers, new SecureRandom());
+            SSLContext.setDefault(sslContext);
+        }
 
         final RamlModelRepository ramlRepo = RamlModelRepository.of(filePath);
         final FileContentModifier contentModifier = new FileContentModifier(fileName.toString());
