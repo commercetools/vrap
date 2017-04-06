@@ -299,7 +299,7 @@ class RamlRouter {
             final ReceivedResponse receivedResponse = ctx.get(ReceivedResponse.class);
             final Validator validator = ctx.get(Validator.class);
             final Method method = ctx.get(Method.class);
-            final Optional<Validator.ValidationErrors> receivedResponseErrors = validator.validateReceivedResponse(receivedResponse, method);
+            final Optional<Validator.ValidationErrors> receivedResponseErrors = validator.validateReceivedResponse(ctx, receivedResponse, method);
 
             if (receivedResponseErrors.isPresent()) {
                 ctx.getResponse().status(VrapStatus.BAD_GATEWAY);

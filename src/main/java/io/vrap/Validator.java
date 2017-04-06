@@ -13,6 +13,7 @@ import ratpack.http.Request;
 import ratpack.http.TypedData;
 import ratpack.http.client.ReceivedResponse;
 import ratpack.http.internal.DefaultMediaType;
+import ratpack.parse.Parse;
 import ratpack.path.PathTokens;
 import ratpack.service.Service;
 import ratpack.util.MultiValueMap;
@@ -141,11 +142,12 @@ public class Validator implements Service {
     /**
      * Validates the given received response against the given method.
      *
+     * @param ctx              the context, required so that the response body can be parsed
      * @param receivedResponse the received response
      * @param method           the method to validate the body against
      * @return validation errors
      */
-    public Optional<ValidationErrors> validateReceivedResponse(final ReceivedResponse receivedResponse, final Method method) {
+    public Optional<ValidationErrors> validateReceivedResponse(final Context ctx, final ReceivedResponse receivedResponse, final Method method) {
         final MediaType contentType = DefaultMediaType.get(receivedResponse.getHeaders().get("Content-Type"));
         final String statusCode = Integer.toString(receivedResponse.getStatusCode());
         final Optional<TypeDeclaration> responseTypeDecl = method.responses().stream().filter(response -> response.code().value().equals(statusCode))
@@ -161,7 +163,13 @@ public class Validator implements Service {
         if (errors.isEmpty()) {
             return Optional.empty();
         } else {
-            final ValidationErrors validationErrors = new ValidationErrors(errors, receivedResponse.getStatusCode(), bodyValue);
+            Object responseBody = bodyValue;
+            try {
+                responseBody = ctx.parse(receivedResponse.getBody(), Parse.of(List.class));
+            } catch (Exception e) {
+                LOG.debug("Unable to parse body of response", e);
+            }
+            final ValidationErrors validationErrors = new ValidationErrors(errors, receivedResponse.getStatusCode(), responseBody);
             LOG.info("Received response has errors: {}", validationErrors);
 
             return Optional.of(validationErrors);
