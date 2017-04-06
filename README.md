@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/vrapio/vrap.svg?branch=master)](https://travis-ci.org/vrapio/vrap)
+
 # VRAP
  
 Validating REST API proxy
