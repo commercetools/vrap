@@ -1,5 +1,6 @@
 package io.vrap;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.raml.v2.api.model.common.ValidationResult;
 import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
@@ -165,7 +166,7 @@ public class Validator implements Service {
         } else {
             Object responseBody = bodyValue;
             try {
-                responseBody = ctx.parse(receivedResponse.getBody(), Parse.of(List.class));
+                responseBody = ctx.parse(receivedResponse.getBody(), Parse.of(JsonNode.class));
             } catch (Exception e) {
                 LOG.debug("Unable to parse body of response", e);
             }
