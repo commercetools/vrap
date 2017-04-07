@@ -2,7 +2,17 @@
 
 # VRAP
  
-Validating REST API proxy
+Vrap is a validating REST API proxy. In order to be able to validate rest api calls the proxy consumes [RAML](http://raml.org/) definition files with version 1.0
+
+## Usage
+
+### Docker
+
+To start vrap using docker use the following command
+
+```
+docker run -v<RAML-definition-directory>:/api -p5050:5050 vrapio/vrap /api/api.raml 
+```
 
 ## Running vrap locally
 
@@ -26,30 +36,18 @@ java -jar build/libs/vrap-all.jar <path-to-raml-file>
 ./gradlew run -PcliArgs=<path-to-raml-file>
 ```
 
-### Usage with Docker
+## Validation
 
-#### Build the image
+In order to validate incoming requests and responses your application has to be configured to use the vrap api url: [http://localhost:5050/api]()
 
-```bash
-./docker_build.sh
-```
+## Web Interface
 
-or
-
-```bash
-docker run -v ${PWD}:/vrap -w /vrap openjdk:8-alpine ./gradlew shadowJar
-docker build -t vrap .
-```
-
-#### Run the docker image
-
-```bash
-docker run -v<RAML-source-directory>:/api -p5050:5050 vrap /api/api.raml 
-```
-
-## End points
+Vrap includes a small web interface for browsing the API definition.
 
 - API browser [http://localhost:5050/api-raml/]()
     - with resolved includes [http://localhost:5050/api-raml/?include]()
+
+And an API console which uses Vrap as proxy
+
 - API console [http://localhost:5050/api-console/]()
     - with resolved includes [http://localhost:5050/api-console/?include]()
