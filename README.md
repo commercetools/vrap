@@ -2,7 +2,7 @@
 
 # VRAP
  
-Vrap is a validating REST API proxy. In order to be able to validate rest api calls the proxy consumes [RAML](http://raml.org/) definition files with version 1.0
+Vrap is a validating REST API proxy. In order to be able to validate rest api calls the proxy consumes [RAML](http://raml.org/) 1.0 definition files
 
 ## Usage
 
