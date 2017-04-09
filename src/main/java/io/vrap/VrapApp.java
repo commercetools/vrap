@@ -70,21 +70,18 @@ public class VrapApp {
                 .registry(Guice.registry(b -> b.module(HandlebarsModule.class)
                         .bindInstance(options)
                         .bindInstance(ramlRepo)
-                        .bindInstance(FileWatcher.of(filePath.getParent(), watchFiles))
                         .bind(Validator.class)))
                 .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate("index.html")))
                         .prefix("api-console", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
                                         new ApiConsoleHandler(),
                                         new WebJarHandler("api-console", "3.0.4"),
-                                        new WebJarHandler("livereload-js", "2.2.2"),
                                         Handlers.files(ctx.getServerConfig(), Action.noop()))))
                         .prefix("api", chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
                         .prefix("api-raml", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
                                         new VrapExtensionHandler(),
                                         new RamlFilesHandler(contentModifier))))));
-                        // .get("livereload", ctx -> WebSockets.websocket(ctx, new LivereloadHandler(ctx, filePath)))));
     }
 
     static class VrapOptions {

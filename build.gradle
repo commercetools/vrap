@@ -35,7 +35,6 @@ repositories {
 
 dependencies {
     compile 'org.webjars.npm:api-console:3.0.4'
-    compile 'org.webjars.npm:livereload-js:2.2.2'
 
     compile 'commons-cli:commons-cli:1.4'
     compile 'org.raml:raml-parser-2:1.0.7'
@@ -47,8 +46,6 @@ dependencies {
     runtime "org.apache.logging.log4j:log4j-api:${versions.log4j}"
     runtime "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     runtime 'com.lmax:disruptor:3.3.2'
-
-    compile 'net.incongru.watchservice:barbary-watchservice:1.0'
 
     testCompile "org.spockframework:spock-core:${versions.spock}"
 }
