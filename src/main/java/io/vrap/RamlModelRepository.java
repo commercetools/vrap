@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * This service provides access to the raml api model.
  */
-class RamlModelRepository implements Service {
+public class RamlModelRepository implements Service {
     private final static Logger LOG = LoggerFactory.getLogger(RamlModelRepository.class);
 
     private final Path filePath;
