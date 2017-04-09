@@ -6,7 +6,7 @@ import ratpack.http.Status;
  * Defines status codes used by vrap.
  */
 public interface VrapStatus {
-    Status BAD_REQUEST = Status.of(400, "Vrap: Bad request");
+    Status INVALID_REQUEST = Status.of(400, "Vrap: Invalid request");
 
-    Status BAD_GATEWAY = Status.of(502, "Vrap: Bad gateway");
+    Status INVALID_RESPONSE = Status.of(502, "Vrap: Invalid response");
 }

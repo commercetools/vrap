@@ -197,7 +197,7 @@ class RamlRouter {
             final Optional<Validator.ValidationErrors> validationErrors = validator.validateRequest(ctx, body, method);
 
             if (validationErrors.isPresent()) {
-                ctx.getResponse().status(VrapStatus.BAD_REQUEST);
+                ctx.getResponse().status(VrapStatus.INVALID_REQUEST);
                 ctx.render(json(validationErrors.get()));
             } else {
                 ctx.next(Registry.single(body));
@@ -302,7 +302,7 @@ class RamlRouter {
             final Optional<Validator.ValidationErrors> receivedResponseErrors = validator.validateReceivedResponse(ctx, receivedResponse, method);
 
             if (receivedResponseErrors.isPresent()) {
-                ctx.getResponse().status(VrapStatus.BAD_GATEWAY);
+                ctx.getResponse().status(VrapStatus.INVALID_RESPONSE);
                 ctx.render(json(receivedResponseErrors.get()));
             } else {
                 ctx.next();
