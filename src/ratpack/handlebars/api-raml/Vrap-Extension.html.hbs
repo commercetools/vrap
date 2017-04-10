@@ -24,21 +24,6 @@ body {
 </head>
 <body>
     <h1 class="title">Vrap-Extension.raml</h1>
-    <pre><code>
-#%RAML 1.0 Extension
-usage: Adds vrap specific headers
-extends: {{fileName}}?{{queryParams}}
-
-{{#each resourceExtensions}}
-{{indent}}{{resourcePath}}:
-{{indent}}{{#each methods}}
-{{indent}}    {{method}}:
-{{indent}}       headers:
-{{indent}}           X-Vrap-Mode:
-{{indent}}               displayName: Vrap mode
-{{indent}}               enum: [ {{modes}} ]
-{{/each}}
-{{/each}}
-    </code></pre>
+    <pre><code>{{> api-raml/Vrap-Extension.raml}}</code></pre>
 </body>
 </html>

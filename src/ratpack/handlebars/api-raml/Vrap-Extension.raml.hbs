@@ -1,6 +1,6 @@
 #%RAML 1.0 Extension
 usage: Adds vrap specific headers
-extends: {{fileName}}?{{queryParams}}
+extends: {{fileName}}{{#if queryParams }}?{{queryParams}}{{/if}}
 baseUri: {{proxyUri}}/api
 {{#each resourceExtensions}}
 {{indent}}{{resourcePath}}:
