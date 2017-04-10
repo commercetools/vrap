@@ -7,7 +7,6 @@ import ratpack.func.Action;
 import ratpack.guice.Guice;
 import ratpack.handlebars.HandlebarsModule;
 import ratpack.handling.Handlers;
-import ratpack.http.client.HttpClient;
 import ratpack.server.RatpackServer;
 
 import java.nio.file.Path;
@@ -36,11 +35,13 @@ public class VrapApp {
 
         final VrapOptions options = new VrapOptions(args);
 
+        if (options.getDuplicateDetection()) {
+            System.setProperty("yagi.json_duplicate_keys_detection", options.getDuplicateDetection().toString());
+        }
         final Path filePath = options.getFilePath();
         final Path fileName = filePath.getFileName();
 
-        if (Optional.ofNullable(System.getenv("DISABLE_SSL_VERIFICATION")).orElse("false").equals("true")) {
-            LOG.info("disable SSL");
+        if (options.getDisableSSLVerification()) {
             SSLContext sslContext = SSLContext.getInstance("SSL");
             javax.net.ssl.TrustManager[] trustManagers = {
                     new X509TrustManager() {
@@ -90,6 +91,8 @@ public class VrapApp {
         private int port;
         private final Options options;
         private String apiUrl;
+        private Boolean duplicateDetection;
+        private Boolean disableSSLVerification;
 
         public VrapOptions(String[] args)
         {
@@ -111,6 +114,12 @@ public class VrapApp {
             mode = parseModeOption(cmd.getOptionValue(getModeOption().getOpt(), VrapMode.proxy.name()));
             port = NumberUtils.toInt(cmd.getOptionValue(getPortOption().getOpt()), 5050);
             apiUrl = cmd.getOptionValue(getApiUrlOption().getOpt());
+            duplicateDetection = Boolean.valueOf(
+                    Optional.ofNullable(cmd.getOptionValue(getJsonDuplicateKeyOption().getOpt())).orElse("true")
+            );
+            disableSSLVerification = Boolean.valueOf(
+                    Optional.ofNullable(cmd.getOptionValue(getDisableSSLVerificationOption().getOpt())).orElse("false")
+            );
 
             if (cmd.getArgs().length == 0) {
                 LOG.error("Missing file input argument.");
@@ -126,6 +135,8 @@ public class VrapApp {
             options.addOption(getModeOption());
             options.addOption(getApiUrlOption());
             options.addOption(getPortOption());
+            options.addOption(getJsonDuplicateKeyOption());
+            options.addOption(getDisableSSLVerificationOption());
 
             return options;
         }
@@ -133,6 +144,7 @@ public class VrapApp {
         private Option getModeOption()
         {
             return Option.builder("m")
+                    .longOpt("mode")
                     .argName("mode")
                     .desc("vrap mode: " + Arrays.toString(VrapMode.values()))
                     .hasArg(true)
@@ -143,6 +155,7 @@ public class VrapApp {
         private Option getApiUrlOption()
         {
             return Option.builder("a")
+                    .longOpt("api")
                     .argName("api")
                     .desc("URI to proxy to")
                     .hasArg(true)
@@ -153,8 +166,31 @@ public class VrapApp {
         private Option getPortOption()
         {
             return Option.builder("p")
+                    .longOpt("port")
                     .argName("port")
                     .desc("port to listen for requests")
+                    .hasArg(true)
+                    .required(false)
+                    .build();
+        }
+
+        private Option getJsonDuplicateKeyOption()
+        {
+            return Option.builder("d")
+                    .longOpt("duplicate-detection")
+                    .argName("bool")
+                    .desc("Enable duplicate key detection")
+                    .hasArg(true)
+                    .required(false)
+                    .build();
+        }
+
+        private Option getDisableSSLVerificationOption()
+        {
+            return Option.builder("i")
+                    .longOpt("insecure-ssl")
+                    .argName("bool")
+                    .desc("Disable SSL verification")
                     .hasArg(true)
                     .required(false)
                     .build();
@@ -179,6 +215,10 @@ public class VrapApp {
             System.exit(1);
             return null;
         }
+
+        public Boolean getDisableSSLVerification() { return disableSSLVerification; }
+
+        public Boolean getDuplicateDetection() { return duplicateDetection; }
 
         public Path getFilePath() {
             return filePath;
