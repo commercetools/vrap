@@ -41,7 +41,7 @@ public class VrapApp {
         final Path filePath = options.getFilePath();
         final Path fileName = filePath.getFileName();
 
-        if (options.getDisableSSLVerification()) {
+        if (options.getSslVerificationMode().equals(SSLVerificationMode.insecure)) {
             SSLContext sslContext = SSLContext.getInstance("SSL");
             javax.net.ssl.TrustManager[] trustManagers = {
                     new X509TrustManager() {
@@ -92,7 +92,7 @@ public class VrapApp {
         private final Options options;
         private String apiUrl;
         private Boolean duplicateDetection;
-        private Boolean disableSSLVerification;
+        private SSLVerificationMode sslVerificationMode;
 
         public VrapOptions(String[] args)
         {
@@ -117,9 +117,7 @@ public class VrapApp {
             duplicateDetection = Boolean.valueOf(
                     Optional.ofNullable(cmd.getOptionValue(getJsonDuplicateKeyOption().getOpt())).orElse("true")
             );
-            disableSSLVerification = Boolean.valueOf(
-                    Optional.ofNullable(cmd.getOptionValue(getDisableSSLVerificationOption().getOpt())).orElse("false")
-            );
+            sslVerificationMode = parseSslMode(cmd.getOptionValue(getSSLVerificationOption().getOpt(), SSLVerificationMode.normal.name()));
 
             if (cmd.getArgs().length == 0) {
                 LOG.error("Missing file input argument.");
@@ -136,7 +134,7 @@ public class VrapApp {
             options.addOption(getApiUrlOption());
             options.addOption(getPortOption());
             options.addOption(getJsonDuplicateKeyOption());
-            options.addOption(getDisableSSLVerificationOption());
+            options.addOption(getSSLVerificationOption());
 
             return options;
         }
@@ -185,12 +183,11 @@ public class VrapApp {
                     .build();
         }
 
-        private Option getDisableSSLVerificationOption()
+        private Option getSSLVerificationOption()
         {
-            return Option.builder("i")
-                    .longOpt("insecure-ssl")
+            return Option.builder("ssl")
                     .argName("bool")
-                    .desc("Disable SSL verification")
+                    .desc("SSL verification mode: " + Arrays.toString(SSLVerificationMode.values()))
                     .hasArg(true)
                     .required(false)
                     .build();
@@ -216,7 +213,22 @@ public class VrapApp {
             return null;
         }
 
-        public Boolean getDisableSSLVerification() { return disableSSLVerification; }
+        private SSLVerificationMode parseSslMode(String value)
+        {
+            Optional<SSLVerificationMode> mode = SSLVerificationMode.parse(value);
+
+            if (mode.isPresent()) {
+                return mode.get();
+            }
+
+            System.out.println("Unknown SSL verification mode: " + value);
+            printHelp();
+            System.exit(1);
+            return null;
+
+        }
+
+        public SSLVerificationMode getSslVerificationMode() { return sslVerificationMode; }
 
         public Boolean getDuplicateDetection() { return duplicateDetection; }
 
