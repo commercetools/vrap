@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
  */
 public class Validator implements Service {
     private final static Logger LOG = LoggerFactory.getLogger(Validator.class);
+    private final static String disableValidationHeader = "X-Vrap-Disable-Validation";
 
     public enum ValidationKind {
         uriParameter,
@@ -120,6 +121,10 @@ public class Validator implements Service {
     public Optional<ValidationErrors> validateRequest(final Context context, final TypedData body, final Method method) {
         final List<ValidationError> errors = new ArrayList<>();
 
+        if (disableValidation(context.getRequest().getHeaders(), ValidationFlag.request)) {
+            return wrapAndLogErrors(errors);
+        }
+
         errors.addAll(validateQueryParameters(context.getRequest(), method));
         errors.addAll(validateRequestHeaders(context.getRequest().getHeaders(), method));
         final Optional<TypeDeclaration> bodyTypeDeclaration = method.body().stream()
@@ -143,6 +148,11 @@ public class Validator implements Service {
         }
     }
 
+    private boolean disableValidation(Headers headers, ValidationFlag flag)
+    {
+        return headers.getAll(disableValidationHeader).contains(flag.name());
+    }
+
     /**
      * Validates the given received response against the given method.
      *
@@ -152,6 +162,10 @@ public class Validator implements Service {
      * @return validation errors
      */
     public Optional<ValidationErrors> validateReceivedResponse(final Context ctx, final ReceivedResponse receivedResponse, final Method method) {
+        if (disableValidation(ctx.getRequest().getHeaders(), ValidationFlag.response)) {
+            return Optional.empty();
+        }
+
         final MediaType contentType = DefaultMediaType.get(receivedResponse.getHeaders().get("Content-Type"));
         final String statusCode = Integer.toString(receivedResponse.getStatusCode());
         final Optional<TypeDeclaration> responseTypeDecl = method.responses().stream().filter(response -> response.code().value().equals(statusCode))
@@ -199,6 +213,9 @@ public class Validator implements Service {
 
     private List<ValidationError> validateQueryParameters(final Request request, final Method method) {
         final List<ValidationError> validationErrors = new ArrayList<>();
+        if (disableValidation(request.getHeaders(), ValidationFlag.queryParameter)) {
+            return validationErrors;
+        }
 
         final Map<String, TypeDeclaration> queryParamToDeclaration = method.queryParameters().stream()
                 .collect(Collectors.toMap(TypeDeclaration::name, Function.identity()));
@@ -243,6 +260,10 @@ public class Validator implements Service {
 
     private List<ValidationError> validateRequestHeaders(final Headers headers, final Method method) {
         final List<ValidationError> validationErrors = new ArrayList<>();
+        if (disableValidation(headers, ValidationFlag.header)) {
+            return validationErrors;
+        }
+
         final Map<String, TypeDeclaration> headerToDeclaration = method.headers().stream()
                 .collect(Collectors.toMap(TypeDeclaration::name, Function.identity()));
 
