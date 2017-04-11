@@ -1,6 +1,8 @@
 package io.vrap;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import org.raml.v2.api.model.common.ValidationResult;
 import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
@@ -21,6 +23,7 @@ import ratpack.util.MultiValueMap;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -200,11 +203,26 @@ public class Validator implements Service {
         final Map<String, TypeDeclaration> queryParamToDeclaration = method.queryParameters().stream()
                 .collect(Collectors.toMap(TypeDeclaration::name, Function.identity()));
 
-        final MultiValueMap<String, String> queryParams = request.getQueryParams();
+        final Map<Pattern, String> queryParamToPattern = method.queryParameters().stream()
+                .collect(
+                        Collectors.toMap(param -> Pattern.compile(param.name().replaceAll("(<<[^>]+>>)", "[^=]+")), TypeDeclaration::name)
+                );
+
+        final Multimap<String, String> queryParams = ArrayListMultimap.create();
+        for (final Map.Entry<String, String> queryParam : request.getQueryParams().entrySet()) {
+            Optional<Map.Entry<Pattern, String>> patternEntry = queryParamToPattern.entrySet().stream().filter(
+                    patternStringEntry -> patternStringEntry.getKey().matcher(queryParam.getKey()).matches()
+            ).findFirst();
+            if (patternEntry.isPresent()) {
+                queryParams.put(patternEntry.get().getValue(), queryParam.getValue());
+            } else {
+                queryParams.put(queryParam.getKey(), queryParam.getValue());
+            }
+        }
         for (final String queryParamName : queryParams.keySet()) {
             if (queryParamToDeclaration.containsKey(queryParamName)) {
                 final TypeDeclaration queryParamDeclaration = queryParamToDeclaration.get(queryParamName);
-                for (final String queryParamValue : queryParams.getAll(queryParamName)) {
+                for (final String queryParamValue : queryParams.get(queryParamName)) {
                     final String validationContext = String.join("=", queryParamName, queryParamValue);
                     final List<ValidationError> errors = validate(queryParamValue, queryParamDeclaration, ValidationKind.queryParameter, validationContext);
                     validationErrors.addAll(errors);
