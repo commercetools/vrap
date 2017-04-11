@@ -7,6 +7,7 @@ import ratpack.func.Action;
 import ratpack.guice.Guice;
 import ratpack.handlebars.HandlebarsModule;
 import ratpack.handling.Handlers;
+import ratpack.http.client.HttpClient;
 import ratpack.server.RatpackServer;
 
 import java.nio.file.Path;
@@ -71,6 +72,7 @@ public class VrapApp {
                 .registry(Guice.registry(b -> b.module(HandlebarsModule.class)
                         .bindInstance(options)
                         .bindInstance(ramlRepo)
+                        .bindInstance(HttpClient.class, HttpClient.of(httpClientSpec -> httpClientSpec.poolSize(options.getClientConnectionPoolSize())))
                         .bind(Validator.class)))
                 .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate("index.html")))
                         .prefix("api-console", chain1 ->
@@ -93,6 +95,7 @@ public class VrapApp {
         private String apiUrl;
         private Boolean duplicateDetection;
         private SSLVerificationMode sslVerificationMode;
+        private int clientConnectionPoolSize;
 
         public VrapOptions(String[] args)
         {
@@ -118,7 +121,12 @@ public class VrapApp {
                     Optional.ofNullable(cmd.getOptionValue(getJsonDuplicateKeyOption().getOpt())).orElse("true")
             );
             sslVerificationMode = parseSslMode(cmd.getOptionValue(getSSLVerificationOption().getOpt(), SSLVerificationMode.normal.name()));
+            clientConnectionPoolSize = NumberUtils.toInt(cmd.getOptionValue(getClientConnectionPoolSizeOption().getOpt()), 10);
 
+            if (cmd.hasOption(getHelpOption().getOpt())) {
+                printHelp();
+                System.exit(0);
+            }
             if (cmd.getArgs().length == 0) {
                 LOG.error("Missing file input argument.");
                 System.exit(1);
@@ -135,6 +143,8 @@ public class VrapApp {
             options.addOption(getPortOption());
             options.addOption(getJsonDuplicateKeyOption());
             options.addOption(getSSLVerificationOption());
+            options.addOption(getClientConnectionPoolSizeOption());
+            options.addOption(getHelpOption());
 
             return options;
         }
@@ -186,9 +196,28 @@ public class VrapApp {
         private Option getSSLVerificationOption()
         {
             return Option.builder("ssl")
-                    .argName("bool")
+                    .argName("mode")
                     .desc("SSL verification mode: " + Arrays.toString(SSLVerificationMode.values()))
                     .hasArg(true)
+                    .required(false)
+                    .build();
+        }
+
+        private Option getClientConnectionPoolSizeOption() {
+            return Option.builder("s")
+                    .longOpt("pool-size")
+                    .argName("pool-size")
+                    .desc("Size of the http client connection pool")
+                    .hasArg(true)
+                    .required(false)
+                    .build();
+        }
+
+        private Option getHelpOption() {
+            return Option.builder("h")
+                    .longOpt("help")
+                    .desc("display help")
+                    .hasArg(false)
                     .required(false)
                     .build();
         }
@@ -246,6 +275,10 @@ public class VrapApp {
 
         public Optional<String> getApiUrl() {
             return Optional.ofNullable(apiUrl);
+        }
+
+        public int getClientConnectionPoolSize() {
+            return clientConnectionPoolSize;
         }
     }
 }
