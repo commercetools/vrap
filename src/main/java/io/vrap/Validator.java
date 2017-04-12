@@ -127,12 +127,15 @@ public class Validator implements Service {
 
         errors.addAll(validateQueryParameters(context.getRequest(), method));
         errors.addAll(validateRequestHeaders(context.getRequest().getHeaders(), method));
-        final Optional<TypeDeclaration> bodyTypeDeclaration = method.body().stream()
-                .filter(typeDeclaration -> body.getContentType().getType().equals(typeDeclaration.name())).findFirst();
+        String contentType = body.getContentType().getType();
+        if (contentType != null) {
+            final Optional<TypeDeclaration> bodyTypeDeclaration = method.body().stream()
+                    .filter(typeDeclaration -> contentType.equals(typeDeclaration.name())).findFirst();
 
-        errors.addAll(bodyTypeDeclaration
-                .map(bodyTypeDecl -> validate(body.getText(), bodyTypeDecl, ValidationKind.body, "request"))
-                .orElse(Collections.emptyList()));
+            errors.addAll(bodyTypeDeclaration
+                    .map(bodyTypeDecl -> validate(body.getText(), bodyTypeDecl, ValidationKind.body, "request"))
+                    .orElse(Collections.emptyList()));
+        }
 
         return wrapAndLogErrors(errors);
     }
