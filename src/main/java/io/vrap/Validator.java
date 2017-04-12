@@ -3,7 +3,10 @@ package io.vrap;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+import jdk.nashorn.internal.runtime.options.Option;
 import org.raml.v2.api.model.common.ValidationResult;
+import org.raml.v2.api.model.v10.api.Api;
+import org.raml.v2.api.model.v10.bodies.MimeType;
 import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.resources.Resource;
@@ -125,17 +128,21 @@ public class Validator implements Service {
             return wrapAndLogErrors(errors);
         }
 
+        final Api api = context.get(RamlModelRepository.class).getApi();
+
         errors.addAll(validateQueryParameters(context.getRequest(), method));
         errors.addAll(validateRequestHeaders(context.getRequest().getHeaders(), method));
-        String contentType = body.getContentType().getType();
-        if (contentType != null) {
-            final Optional<TypeDeclaration> bodyTypeDeclaration = method.body().stream()
-                    .filter(typeDeclaration -> contentType.equals(typeDeclaration.name())).findFirst();
 
-            errors.addAll(bodyTypeDeclaration
-                    .map(bodyTypeDecl -> validate(body.getText(), bodyTypeDecl, ValidationKind.body, "request"))
-                    .orElse(Collections.emptyList()));
-        }
+        final String contentType = Optional.ofNullable(body.getContentType().getType()).orElse(
+                !method.body().isEmpty() ? method.body().get(0).name() :
+                        !api.mediaType().isEmpty() ? api.mediaType().get(0).value() : "application/json"
+        );
+        final Optional<TypeDeclaration> bodyTypeDeclaration = method.body().stream()
+                .filter(typeDeclaration -> contentType.equals(typeDeclaration.name())).findFirst();
+
+        errors.addAll(bodyTypeDeclaration
+                .map(bodyTypeDecl -> validate(body.getText(), bodyTypeDecl, ValidationKind.body, "request"))
+                .orElse(Collections.emptyList()));
 
         return wrapAndLogErrors(errors);
     }
