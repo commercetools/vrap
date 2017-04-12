@@ -34,10 +34,14 @@ class VrapExtensionHandler implements Handler {
             List<ResourceExtension> resourceExtensions = resourceExtensions(api.resources(), "");
             final Integer port = ctx.getServerConfig().getPort();
             final ImmutableMap<String, Object> model =
-                    ImmutableMap.of("fileName", filePath.getFileName(),
-                            "queryParams", ctx.getRequest().getQuery(),
-                            "resourceExtensions", resourceExtensions,
-                            "proxyUri", "http://localhost:" + port.toString());
+                    ImmutableMap.<String, Object>builder()
+                            .put("fileName", filePath.getFileName())
+                            .put("queryParams", ctx.getRequest().getQuery())
+                            .put("resourceExtensions", resourceExtensions)
+                            .put("proxyUri", "http://localhost:" + port.toString())
+                            .put("modes", Joiner.on(", ").join(VrapMode.values()))
+                            .put("flags", Joiner.on(", ").join(ValidationFlag.values()))
+                    .build();
 
             ctx.byContent(byContentSpec -> byContentSpec
                     .html(() -> ctx.render(handlebarsTemplate(model, "api-raml/Vrap-Extension.html")))
@@ -84,19 +88,13 @@ class VrapExtensionHandler implements Handler {
 
     private static class ResourceExtensionMethod {
         private final String method;
-        private final String modes;
 
         public ResourceExtensionMethod(final String method) {
             this.method = method;
-            this.modes = Joiner.on(", ").join(VrapMode.values());
         }
 
         public String getMethod() {
             return method;
-        }
-
-        public String getModes() {
-            return modes;
         }
     }
 }

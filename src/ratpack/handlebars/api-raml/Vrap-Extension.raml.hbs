@@ -2,13 +2,18 @@
 usage: Adds vrap specific headers
 extends: {{fileName}}{{#if queryParams }}?{{queryParams}}{{/if}}
 baseUri: {{proxyUri}}/api
+traits:
+    vrapable:
+        headers:
+            X-Vrap-Mode?:
+                displayName: Vrap mode
+                enum: [ {{modes}} ]
+
 {{#each resourceExtensions}}
 {{indent}}{{resourcePath}}:
 {{indent}}{{#each methods}}
 {{indent}}    {{method}}:
-{{indent}}       headers:
-{{indent}}           X-Vrap-Mode?:
-{{indent}}               displayName: Vrap mode
-{{indent}}               enum: [ {{modes}} ]
+{{indent}}       is:
+{{indent}}         - vrapable
 {{/each}}
 {{/each}}
