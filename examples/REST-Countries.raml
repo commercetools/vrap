@@ -18,6 +18,7 @@ types:
             latlng: number[]
 
 /all:
+    displayName: All Countries
     get:
         responses:
             200:
@@ -26,6 +27,10 @@ types:
 
 /name:
     /{name}:
+        uriParameters:
+            name:
+                type: string
+        displayName: Country by name
         get:
             queryParameters:
                 fullText?:
@@ -37,6 +42,7 @@ types:
                         type: Country[]
 
 /alpha:
+    displayName: Country by ISO code
     get:
         queryParameters:
             codes:
