@@ -190,10 +190,12 @@ public class Validator implements Service {
             return Optional.empty();
         } else {
             Object responseBody = bodyValue;
-            try {
-                responseBody = ctx.parse(receivedResponse.getBody(), Parse.of(JsonNode.class));
-            } catch (Exception e) {
-                LOG.debug("Unable to parse body of response", e);
+            if (!ctx.get(VrapApp.VrapOptions.class).getDryRun()) {
+                try {
+                    responseBody = ctx.parse(receivedResponse.getBody(), Parse.of(JsonNode.class));
+                } catch (Exception e) {
+                    LOG.debug("Unable to parse body of response", e);
+                }
             }
             final ValidationErrors validationErrors = new ValidationErrors(errors, receivedResponse.getStatusCode(), responseBody);
             LOG.info("Received response has errors: {}", validationErrors);
