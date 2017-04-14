@@ -19,4 +19,4 @@ docker run -v$(pwd):/api -p5050:5050 vrapio/vrap /api/REST-countries.raml
 
 ## Browsing and testing the raml definition
 
-- open a browser to access the vrap ui [http://localhost:5050](http://localhost:5050)  
+- Open a browser to access the vrap ui [http://localhost:5050](http://localhost:5050)  
