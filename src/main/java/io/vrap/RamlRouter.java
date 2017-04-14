@@ -193,10 +193,11 @@ class RamlRouter {
 
         private void validateRequest(final Context ctx, final TypedData body) {
             final Validator validator = ctx.get(Validator.class);
+            final boolean dryRun = ctx.get(VrapApp.VrapOptions.class).getDryRun();
             final Method method = ctx.get(Method.class);
             final Optional<Validator.ValidationErrors> validationErrors = validator.validateRequest(ctx, body, method);
 
-            if (validationErrors.isPresent()) {
+            if (validationErrors.isPresent() && !dryRun) {
                 ctx.getResponse().status(VrapStatus.INVALID_REQUEST);
                 ctx.render(json(validationErrors.get()));
             } else {
@@ -298,10 +299,11 @@ class RamlRouter {
         public void handle(Context ctx) throws Exception {
             final ReceivedResponse receivedResponse = ctx.get(ReceivedResponse.class);
             final Validator validator = ctx.get(Validator.class);
+            final Boolean dryRun = ctx.get(VrapApp.VrapOptions.class).getDryRun();
             final Method method = ctx.get(Method.class);
             final Optional<Validator.ValidationErrors> receivedResponseErrors = validator.validateReceivedResponse(ctx, receivedResponse, method);
 
-            if (receivedResponseErrors.isPresent()) {
+            if (receivedResponseErrors.isPresent() && !dryRun) {
                 ctx.getResponse().status(VrapStatus.INVALID_RESPONSE);
                 ctx.render(json(receivedResponseErrors.get()));
             } else {

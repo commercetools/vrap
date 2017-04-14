@@ -96,6 +96,7 @@ public class VrapApp {
         private Boolean duplicateDetection;
         private SSLVerificationMode sslVerificationMode;
         private int clientConnectionPoolSize;
+        private Boolean dryRun;
 
         public VrapOptions(String[] args)
         {
@@ -114,6 +115,7 @@ public class VrapApp {
                 return;
             }
 
+            dryRun = cmd.hasOption(getDryRunOption().getOpt());
             mode = parseModeOption(cmd.getOptionValue(getModeOption().getOpt(), VrapMode.proxy.name()));
             port = NumberUtils.toInt(cmd.getOptionValue(getPortOption().getOpt()), 5050);
             apiUrl = cmd.getOptionValue(getApiUrlOption().getOpt());
@@ -145,6 +147,7 @@ public class VrapApp {
             options.addOption(getSSLVerificationOption());
             options.addOption(getClientConnectionPoolSizeOption());
             options.addOption(getHelpOption());
+            options.addOption(getDryRunOption());
 
             return options;
         }
@@ -209,6 +212,15 @@ public class VrapApp {
                     .argName("pool-size")
                     .desc("Size of the http client connection pool")
                     .hasArg(true)
+                    .required(false)
+                    .build();
+        }
+
+        private Option getDryRunOption() {
+            return Option.builder("dr")
+                    .longOpt("dry-run")
+                    .desc("Report errors only")
+                    .hasArg(false)
                     .required(false)
                     .build();
         }
@@ -280,5 +292,7 @@ public class VrapApp {
         public int getClientConnectionPoolSize() {
             return clientConnectionPoolSize;
         }
+
+        public Boolean getDryRun() { return dryRun; }
     }
 }
