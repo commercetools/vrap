@@ -35,6 +35,10 @@ Vrap provides two modes of operation, which can be set globally on the command l
  
 - **example** mode sends the examples for a request as given in the RAML definition
 - **proxy** mode proxies requests to the base uri as given in the RAML definition
+
+# Tutorial 
+
+A short introduction to using vrap is available at [tutorial](tutorial.html) .
     
 ## Http headers
 
