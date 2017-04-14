@@ -37,6 +37,19 @@ The easisest way is to start VRAP with docker. This requires that you have [dock
 ```
 docker run -v<RAML-definition-directory>:/api -p5050:5050 vrapio/vrap /api/api.raml 
 ```
+### Comand line options
+
+```
+usage: vrap [OPTIONS] <file.raml>
+ -a,--api <api>                    URI to proxy to
+ -d,--duplicate-detection <bool>   Enable duplicate key detection
+ -dr,--dry-run                     Report errors only
+ -h,--help                         display help
+ -m,--mode <mode>                  vrap mode: [example, proxy]
+ -p,--port <port>                  port to listen for requests
+ -s,--pool-size <pool-size>        Size of the http client connection pool
+ -ssl <mode>                       SSL verification mode: [normal, insecure]
+```
 
 ## Source code
 
