@@ -19,6 +19,7 @@ types:
 
 /all:
     displayName: All Countries
+    description: Returns all countries
     get:
         responses:
             200:
@@ -31,6 +32,7 @@ types:
             name:
                 type: string
         displayName: Country by name
+        description: Returns all countries with the given name
         get:
             queryParameters:
                 fullText?:
@@ -43,6 +45,7 @@ types:
 
 /alpha:
     displayName: Country by ISO code
+    description: Returns all countries with the given codes
     get:
         queryParameters:
             codes:

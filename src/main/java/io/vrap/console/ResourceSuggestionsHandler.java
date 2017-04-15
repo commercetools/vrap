@@ -5,6 +5,7 @@ import org.raml.v2.api.model.v10.api.Api;
 import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.resources.Resource;
+import org.raml.v2.api.model.v10.system.types.MarkdownString;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 
@@ -65,13 +66,15 @@ public class ResourceSuggestionsHandler implements Handler {
     private static class ResourceSuggestion {
         private final String uri;
         private final String name;
+        private final String description;
         private final Map<String, TypeDecl> uriParams;
         private final Map<String, MethodDecl> methods;
 
-        private ResourceSuggestion(final String uri, final String name,
+        private ResourceSuggestion(final String uri, final String name, final String description,
                                    final Map<String, TypeDecl> uriParams, final Map<String, MethodDecl> methods) {
             this.uri = uri;
             this.name = name;
+            this.description = description;
             this.uriParams = uriParams;
             this.methods = methods;
         }
@@ -82,6 +85,10 @@ public class ResourceSuggestionsHandler implements Handler {
 
         public String getName() {
             return name;
+        }
+
+        public String getDescription() {
+            return description;
         }
 
         public Map<String, TypeDecl> getUriParams() {
@@ -100,7 +107,9 @@ public class ResourceSuggestionsHandler implements Handler {
                     .map(MethodDecl::of)
                     .collect(Collectors.toMap(MethodDecl::getMethod, Function.identity()));
 
-            return new ResourceSuggestion(resource.resourcePath(), resource.displayName().value(), uriParams, methods);
+            final MarkdownString description = resource.description();
+            return new ResourceSuggestion(resource.resourcePath(), resource.displayName().value(),
+                    description == null ? null : description.value(), uriParams, methods);
         }
     }
 
@@ -110,7 +119,7 @@ public class ResourceSuggestionsHandler implements Handler {
 
         private MethodDecl(final String method, final Map<String, TypeDecl> queryParams) {
             this.method = method;
-            this.queryParams = queryParams;
+            this.queryParams = queryParams.isEmpty() ? null : queryParams;
         }
 
         public Map<String, TypeDecl> getQueryParams() {
