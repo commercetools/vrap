@@ -27,20 +27,25 @@ public class ResourceSuggestionsHandler implements Handler {
     public void handle(final Context ctx) throws Exception {
         final Api api = ctx.get(RamlModelRepository.class).getApi();
         final String query = ctx.getRequest().getQueryParams().get("query");
+        final List<ResourceSuggestion> resourceSuggestions;
         if (query.contains("/")) {
-            final List<ResourceSuggestion> resourceSuggestions =
-                    suggestResources(api.resources(), query).stream()
-                            .map(ResourceSuggestion::of)
+            resourceSuggestions =
+                    suggestPathResources(api.resources(), query).stream()
+                            .map(result -> ResourceSuggestion.of(result, result.resourcePath()))
                             .collect(Collectors.toList());
-            if (resourceSuggestions.isEmpty()) {
-                ctx.notFound();
-            } else {
-                ctx.render(json(resourceSuggestions));
-            }
+        } else {
+            resourceSuggestions = suggestNameResources(api.resources(), query).stream()
+                            .map(result -> ResourceSuggestion.of(result, result.displayName().value()))
+                            .collect(Collectors.toList());
+        }
+        if (resourceSuggestions.isEmpty()) {
+            ctx.notFound();
+        } else {
+            ctx.render(json(resourceSuggestions));
         }
     }
 
-    private List<Resource> suggestResources(final List<Resource> resources, final String path) {
+    private List<Resource> suggestPathResources(final List<Resource> resources, final String path) {
         final List<Resource> foundResources = new ArrayList<>();
 
         final Matcher matcher = PATH_SEGMENT_PATTERN.matcher(path);
@@ -56,27 +61,61 @@ public class ResourceSuggestionsHandler implements Handler {
                 final List<Resource> subResources = matches.stream()
                         .flatMap(match -> match.resources().stream())
                         .collect(Collectors.toList());
-                foundResources.addAll(suggestResources(subResources, remainingPath));
+                foundResources.addAll(suggestPathResources(subResources, remainingPath));
             }
         }
 
         return foundResources;
     }
 
+
+    private List<Resource> suggestNameResources(final List<Resource> resources, final String name) {
+        final List<Resource> foundResources = new ArrayList<>();
+
+        final String[] words = name.toLowerCase().split("\\s+");
+        for (final String word : words) {
+            foundResources.addAll(suggestResourcesContainingWord(resources, word));
+        }
+
+        return foundResources;
+    }
+
+    private List<Resource> suggestResourcesContainingWord(final List<Resource> resources, final String word) {
+        final List<Resource> foundResources = new ArrayList<>();
+        for (final Resource resource : resources) {
+            if (containsWord(resource, word)) {
+                foundResources.add(resource);
+            }
+            foundResources.addAll(suggestResourcesContainingWord(resource.resources(), word));
+        }
+        return foundResources;
+    }
+
+    private boolean containsWord(final Resource resource, final String word) {
+        return resource.displayName() != null && resource.displayName().value().toLowerCase().contains(word)
+                || resource.description() != null && resource.description().value().toLowerCase().contains(word);
+    }
+
     private static class ResourceSuggestion {
+        private final String label;
         private final String uri;
         private final String name;
         private final String description;
         private final Map<String, TypeDecl> uriParams;
         private final Map<String, MethodDecl> methods;
 
-        private ResourceSuggestion(final String uri, final String name, final String description,
+        private ResourceSuggestion(String label, final String uri, final String name, final String description,
                                    final Map<String, TypeDecl> uriParams, final Map<String, MethodDecl> methods) {
+            this.label = label;
             this.uri = uri;
             this.name = name;
             this.description = description;
             this.uriParams = uriParams;
             this.methods = methods;
+        }
+
+        public String getLabel() {
+            return label;
         }
 
         public String getUri() {
@@ -99,7 +138,7 @@ public class ResourceSuggestionsHandler implements Handler {
             return methods;
         }
 
-        static ResourceSuggestion of(final Resource resource) {
+        static ResourceSuggestion of(final Resource resource, final String label) {
             final Map<String, TypeDecl> uriParams = resource.uriParameters().stream()
                     .map(TypeDecl::of)
                     .collect(Collectors.toMap(TypeDecl::getName, Function.identity()));
@@ -108,7 +147,7 @@ public class ResourceSuggestionsHandler implements Handler {
                     .collect(Collectors.toMap(MethodDecl::getMethod, Function.identity()));
 
             final MarkdownString description = resource.description();
-            return new ResourceSuggestion(resource.resourcePath(), resource.displayName().value(),
+            return new ResourceSuggestion(label, resource.resourcePath(), resource.displayName().value(),
                     description == null ? null : description.value(), uriParams, methods);
         }
     }
