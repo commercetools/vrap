@@ -47,6 +47,14 @@ mediaType:
                             <song songId="550e8400-e29b-41d4-a716-446655440111" songTitle"Loose yourself to dance">
                             </song>
                         </songs>
+  post:
+    description: Creates a new song
+    body:
+    responses:
+        201:
+            body:
+                application/json:
+                    example: { "songId": "550e8400-e29b-41d4-a716-446655440003", "songTitle": "New Song" }
   /{songId}:
     description: Song entity
     uriParameters:

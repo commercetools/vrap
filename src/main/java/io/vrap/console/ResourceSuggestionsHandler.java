@@ -9,7 +9,11 @@ import org.raml.v2.api.model.v10.system.types.MarkdownString;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -96,7 +100,7 @@ public class ResourceSuggestionsHandler implements Handler {
                 || resource.description() != null && resource.description().value().toLowerCase().contains(word);
     }
 
-    private static class ResourceSuggestion {
+    private final static class ResourceSuggestion {
         private final String label;
         private final String uri;
         private final String name;
@@ -138,13 +142,14 @@ public class ResourceSuggestionsHandler implements Handler {
             return methods;
         }
 
-        static ResourceSuggestion of(final Resource resource, final String label) {
+        public static ResourceSuggestion of(final Resource resource, final String label) {
             final Map<String, TypeDecl> uriParams = resource.uriParameters().stream()
                     .map(TypeDecl::of)
                     .collect(Collectors.toMap(TypeDecl::getName, Function.identity()));
             final Map<String, MethodDecl> methods = resource.methods().stream()
                     .map(MethodDecl::of)
-                    .collect(Collectors.toMap(MethodDecl::getMethod, Function.identity()));
+                    .collect(Collectors.toMap(MethodDecl::getMethod, Function.identity(),
+                            throwingMerger(MethodDecl::getMethod), LinkedHashMap::new));
 
             final MarkdownString description = resource.description();
             return new ResourceSuggestion(label, resource.resourcePath(), resource.displayName().value(),
@@ -152,7 +157,7 @@ public class ResourceSuggestionsHandler implements Handler {
         }
     }
 
-    private final static class MethodDecl {
+    private static class MethodDecl {
         private final String method;
         private final Map<String, TypeDecl> queryParams;
 
@@ -172,9 +177,17 @@ public class ResourceSuggestionsHandler implements Handler {
         public static MethodDecl of(final Method method) {
             final Map<String, TypeDecl> queryParams = method.queryParameters().stream()
                     .map(TypeDecl::of)
-                    .collect(Collectors.toMap(TypeDecl::getName, Function.identity()));
+                    .collect(Collectors.toMap(TypeDecl::getName, Function.identity(),
+                            throwingMerger(TypeDecl::getName), LinkedHashMap::new));
             return new MethodDecl(method.method(), queryParams);
         }
+    }
+
+    private static <T> BinaryOperator<T> throwingMerger(final Function<T, String> keyExtractor) {
+        return (o, o2) -> {
+            final String message = String.format("Duplicate keys '%s', '%s'", keyExtractor.apply(o), keyExtractor.apply(o2));
+            throw new IllegalStateException(message);
+        };
     }
 
     private static class TypeDecl {
