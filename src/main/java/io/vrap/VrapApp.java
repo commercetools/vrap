@@ -81,7 +81,7 @@ public class VrapApp {
                                         Handlers.files(ctx.getServerConfig(), Action.noop()))))
                         .prefix("api", chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
                         .prefix("reflection", chain1 -> chain1
-                                .get("", new ApiHandler())
+                                .get("", new ApiHandler(options))
                                 .prefix("search", chain2 -> chain2.all(new ResourceSearchHandler()))
                                 .prefix("resources", chain2 -> chain2.all(new ResourceHandler())))
                         .prefix("api-raml", chain1 ->
@@ -90,7 +90,7 @@ public class VrapApp {
                                         new RamlFilesHandler(contentModifier))))));
     }
 
-    static class VrapOptions {
+    public static class VrapOptions {
         private Path filePath;
         private VrapMode mode;
         private int port;
