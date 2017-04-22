@@ -1,6 +1,8 @@
 package io.vrap;
 
-import io.vrap.console.ResourceSuggestionsHandler;
+import io.vrap.reflection.ApiHandler;
+import io.vrap.reflection.ResourceHandler;
+import io.vrap.reflection.ResourceSearchHandler;
 import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,7 +80,10 @@ public class VrapApp {
                                         new WebJarHandler("api-console", "3.0.4"),
                                         Handlers.files(ctx.getServerConfig(), Action.noop()))))
                         .prefix("api", chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
-                        .prefix("console/suggestions", chain1 -> chain1.all(new ResourceSuggestionsHandler()))
+                        .prefix("reflection", chain1 -> chain1
+                                .get("", new ApiHandler())
+                                .prefix("search", chain2 -> chain2.all(new ResourceSearchHandler()))
+                                .prefix("resources", chain2 -> chain2.all(new ResourceHandler())))
                         .prefix("api-raml", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
                                         new VrapExtensionHandler(),
