@@ -3,6 +3,7 @@ package io.vrap;
 import io.vrap.reflection.ApiHandler;
 import io.vrap.reflection.ResourceHandler;
 import io.vrap.reflection.ResourceSearchHandler;
+import io.vrap.reflection.TypeDeclarationHandler;
 import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,7 +84,8 @@ public class VrapApp {
                         .prefix("reflection", chain1 -> chain1
                                 .get("", new ApiHandler(options))
                                 .prefix("search", chain2 -> chain2.all(new ResourceSearchHandler()))
-                                .prefix("resources", chain2 -> chain2.all(new ResourceHandler())))
+                                .prefix("resources", chain2 -> chain2.all(new ResourceHandler()))
+                                .prefix("type-declarations", chain2 -> chain2.all(new TypeDeclarationHandler())))
                         .prefix("api-raml", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
                                         new VrapExtensionHandler(),

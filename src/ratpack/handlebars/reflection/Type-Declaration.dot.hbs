@@ -1,0 +1,16 @@
+digraph G {
+    fontsize = 12
+
+    node [
+        fontsize = 12
+        shape = "record"
+    ]
+
+    edge [
+        fontsize = 12
+    ]
+
+    {{typeDeclaration.name}} [
+        label = "{ {{typeDeclaration.name}}|{{#each typeDeclaration.properties}} {{name}} : {{type}} \l{{/each}} }"
+    ]
+}
