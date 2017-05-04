@@ -8,11 +8,9 @@ import org.raml.v2.api.model.v10.resources.Resource;
 import org.raml.v2.api.model.v10.system.types.MarkdownString;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
+import ratpack.util.MultiValueMap;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -30,19 +28,43 @@ public class ResourceSearchHandler implements Handler {
     @Override
     public void handle(final Context ctx) throws Exception {
         final Api api = ctx.get(RamlModelRepository.class).getApi();
-        final String query = ctx.getRequest().getQueryParams().get("query");
+        final MultiValueMap<String, String> queryParams = ctx.getRequest().getQueryParams();
+        final String query = queryParams.get("query");
+        final String resourcePath = queryParams.get("path");
+        final Optional<Resource> foundResource = resourcePath != null ?
+                findResource(api.resources(), resourcePath) :
+                Optional.empty();
+        final List<Resource> resources = foundResource.isPresent() ?
+                foundResource.get().resources() :
+                api.resources();
         final List<SearchResult> results;
+
         if (query != null && query.contains("/")) {
             results =
-                    suggestPathResources(api.resources(), query).stream()
-                            .map(result -> SearchResult.of(result.resourcePath(), result))
+                    suggestPathResources(resources, query).stream()
+                            .map(result -> SearchResult.of(result.relativeUri().value(), result))
                             .collect(Collectors.toList());
         } else {
-            results = suggestNameResources(api.resources(), query).stream()
-                            .map(result -> SearchResult.of(result.displayName().value(), result))
-                            .collect(Collectors.toList());
+            results = suggestNameResources(resources, query).stream()
+                    .map(result -> SearchResult.of(result.displayName().value(), result))
+                    .collect(Collectors.toList());
         }
         ctx.render(json(results));
+    }
+
+    private Optional<Resource> findResource(final List<Resource> resources, final String resourcePath) {
+        final Optional<Resource> foundResource = resources.stream()
+                .filter(resource -> resourcePath.startsWith(resource.resourcePath()))
+                .findFirst();
+
+        if (foundResource.isPresent()) {
+            final Resource resource = foundResource.get();
+            if (resource.resourcePath().length() < resourcePath.length()) {
+                final String remainingPath = resourcePath.substring(resource.resourcePath().length());
+                return findResource(resource.resources(), remainingPath);
+            }
+        }
+        return foundResource;
     }
 
     private List<Resource> suggestPathResources(final List<Resource> resources, final String path) {
