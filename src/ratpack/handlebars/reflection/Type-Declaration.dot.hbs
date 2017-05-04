@@ -1,16 +1,46 @@
 digraph G {
-    fontsize = 12
+    fontsize = 10
 
     node [
-        fontsize = 12
+        fontsize = 10
         shape = "record"
     ]
 
     edge [
-        fontsize = 12
+        fontsize = 10
     ]
 
-    {{typeDeclaration.name}} [
-        label = "{ {{typeDeclaration.name}}|{{#each typeDeclaration.properties}} {{name}} : {{type}} \l{{/each}} }"
+
+    {{#each enumTypes}}
+        {{name}} [
+        label = "{ «enumeration» \n {{name}}|{{#each enumValues}} {{this}} \l{{/each}} }"
+        ]
+    {{/each}}
+
+    {{#each typeDeclarations}}
+    {{name}} [
+        label = "{ {{name}}|{{#each properties}} {{name}} : {{type}} \l{{/each}} }"
     ]
+    {{/each}}
+
+    {{#each associations}}
+    edge [
+        dir = "back"
+        arrowtail = "diamond"
+        headlabel = " {{multiplicity}} "
+        label = "  {{name}}  "
+    ]
+    {{source}} -> {{target}}
+    {{/each}}
+
+    edge [
+        dir = "back"
+        arrowtail = "empty"
+        headlabel = ""
+        label = ""
+    ]
+    {{#each generalizations}}
+    {{source}} -> {{target}}
+    {{/each}}
+
 }

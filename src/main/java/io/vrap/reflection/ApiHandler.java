@@ -3,12 +3,15 @@ package io.vrap.reflection;
 import io.vrap.RamlModelRepository;
 import io.vrap.VrapApp;
 import io.vrap.VrapMode;
+import org.raml.v2.api.model.v08.system.types.MarkdownString;
 import org.raml.v2.api.model.v10.api.Api;
 import org.raml.v2.api.model.v10.security.SecurityScheme;
+import org.raml.v2.api.model.v10.system.types.AnnotableStringType;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 
 import java.util.List;
+import java.util.Optional;
 
 import static ratpack.jackson.Jackson.json;
 
@@ -67,9 +70,16 @@ public class ApiHandler implements Handler {
         public static ApiView of(final Api api, final VrapMode vrapMode) {
             final List<SecurityScheme> securitySchemes = api.securitySchemes();
             final String authorizationUri = securitySchemes.stream()
-                    .filter(schema -> schema.type().equals("oauth_2_0")).findFirst()
+                    .filter(schema -> schema.name().equals("oauth_2_0")).findFirst()
                     .map(schema -> schema.settings().authorizationUri().value()).orElse(null);
-            return new ApiView(api.title().value(), api.description().value(), api.baseUri().value(), authorizationUri, vrapMode);
+            final String title = Optional.ofNullable(api.title())
+                    .map(AnnotableStringType::value)
+                    .orElse("");
+            final String description = Optional.ofNullable(api.description())
+                    .map(markdownString -> markdownString.value())
+                    .orElse("");
+            final String baseUri = api.baseUri().value();
+            return new ApiView(title, description, baseUri, authorizationUri, vrapMode);
         }
     }
 }
