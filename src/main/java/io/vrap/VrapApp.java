@@ -75,16 +75,23 @@ public class VrapApp {
                         .bindInstance(HttpClient.class, HttpClient.of(httpClientSpec -> httpClientSpec.poolSize(options.getClientConnectionPoolSize())))
                         .bind(Validator.class)))
                 .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate("index.html")))
+                        .prefix("console4", chain1 ->
+                                chain1.all(ctx -> ctx.insert(
+                                        new ApiConsoleHandler("console4"),
+                                        Handlers.files(ctx.getServerConfig(), Action.noop()))))
                         .prefix("api-console", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
-                                        new ApiConsoleHandler(),
+                                        new ApiConsoleHandler("api-console"),
                                         new WebJarHandler("api-console", "3.0.4"),
                                         Handlers.files(ctx.getServerConfig(), Action.noop()))))
                         .prefix("api", chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
                         .prefix("api-raml", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
                                         new VrapExtensionHandler(),
-                                        new RamlFilesHandler(contentModifier))))));
+                                        new RamlFilesHandler(contentModifier)))
+                        )
+                )
+        );
     }
 
     static class VrapOptions {

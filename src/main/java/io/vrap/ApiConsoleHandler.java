@@ -14,6 +14,12 @@ import static ratpack.handlebars.Template.handlebarsTemplate;
  */
 class ApiConsoleHandler implements Handler {
     private final static Logger LOG = LoggerFactory.getLogger(ApiConsoleHandler.class);
+    private final String basePath;
+
+    public ApiConsoleHandler(String basePath) {
+
+        this.basePath = basePath;
+    }
 
     @Override
     public void handle(final Context ctx) throws Exception {
@@ -30,7 +36,7 @@ class ApiConsoleHandler implements Handler {
                             "proxyHost", "localhost",
                             "proxyPort", port
                     );
-            ctx.render(handlebarsTemplate(model, "api-console/index.html"));
+            ctx.render(handlebarsTemplate(model, basePath + "/index.html"));
         }
         else  {
             ctx.next();

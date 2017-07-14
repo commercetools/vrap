@@ -1,0 +1,19 @@
+{
+  "name": "vrap",
+  "scripts": {
+    "postinstall": "node_modules/.bin/bower install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vrapio/vrap.git"
+  },
+  "author": "vrap.io",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vrapio/vrap/issues"
+  },
+  "homepage": "http://www.vrap.io",
+  "dependencies": {
+    "bower": "^1.8.0"
+  }
+}

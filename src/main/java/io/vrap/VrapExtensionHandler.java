@@ -44,8 +44,9 @@ class VrapExtensionHandler implements Handler {
                     .build();
 
             ctx.byContent(byContentSpec -> byContentSpec
+                    .type("application/raml+yaml", () -> ctx.render(handlebarsTemplate(model, "api-raml/Vrap-Extension.raml")))
                     .html(() -> ctx.render(handlebarsTemplate(model, "api-raml/Vrap-Extension.html")))
-                    .noMatch(() -> ctx.render(handlebarsTemplate(model, "api-raml/Vrap-Extension.raml"))));
+                    .noMatch("application/raml+yaml"));
         } else {
             ctx.next();
         }

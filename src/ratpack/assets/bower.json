@@ -1,0 +1,23 @@
+{
+  "name": "vrap",
+  "description": "",
+  "main": "",
+  "authors": [
+    "vrap.io"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/vrapio/vrap",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "api-console": "mulesoft/api-console#^4.0.0",
+    "raml-1-parser-browser": "raml-org/raml-js-parser-2#^1.1.26",
+    "raml-json-enhance": "advanced-rest-client/raml-json-enhance#^0.1.20"
+  }
+}

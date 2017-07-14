@@ -49,8 +49,9 @@ class RamlFilesHandler implements Handler {
                 content = Files.asByteSource(file).asCharSource(Charsets.UTF_8).read();
             }
             ctx.byContent(byContentSpec -> byContentSpec
+                    .type("application/raml+yaml", () -> renderReplacedContent(ctx, content))
                     .html(() -> renderHtml(ctx, path, content))
-                    .noMatch(() -> renderReplacedContent(ctx, content)));
+                    .noMatch("application/raml+yaml"));
         } else {
             ctx.byContent(byContentSpec -> byContentSpec.noMatch(() -> ctx.render(ctx.file("api-raml/" + path))));
         }
