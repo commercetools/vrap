@@ -1,5 +1,6 @@
 package io.vrap;
 
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -46,9 +47,10 @@ public class Validator implements Service {
         body
     }
 
-    public class ValidationErrors {
+    public static class ValidationErrors {
         private final List<ValidationError> errors;
         private final Integer responseStatusCode;
+        @JsonRawValue
         private final Object responseBody;
 
         public ValidationErrors(final List<ValidationError> errors) {
@@ -194,19 +196,7 @@ public class Validator implements Service {
         if (errors.isEmpty()) {
             return Optional.empty();
         } else {
-            Object responseBody = bodyValue;
-            if (!ctx.get(VrapApp.VrapOptions.class).getDryRun()) {
-                try {
-                    JsonFactory f = new JsonFactory();
-                    f.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
-                    JsonParseOpts opts = new DefaultJsonParseOpts(new ObjectMapper(f));
-
-                    responseBody = ctx.parse(receivedResponse.getBody(), Parse.of(JsonNode.class, opts));
-                } catch (Exception e) {
-                    LOG.debug("Unable to parse body of response", e);
-                }
-            }
-            final ValidationErrors validationErrors = new ValidationErrors(errors, receivedResponse.getStatusCode(), responseBody);
+            final ValidationErrors validationErrors = new ValidationErrors(errors, receivedResponse.getStatusCode(), bodyValue);
             LOG.info("Received response has errors: {}", validationErrors);
 
             return Optional.of(validationErrors);

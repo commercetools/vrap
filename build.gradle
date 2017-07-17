@@ -23,6 +23,7 @@ ext {
 }
 
 apply plugin: 'java'
+apply plugin: 'groovy'
 
 if (!JavaVersion.current().java8Compatible) {
     throw new IllegalStateException("Must be built with Java 8 or higher")
