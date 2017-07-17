@@ -73,7 +73,7 @@ run {
     }
 }
 
-jar.dependsOn(yarn_install)
+processResources.dependsOn(yarn_install)
 
 task buildDocker(type: Docker) {
     baseImage = 'openjdk:8-jre-alpine'
