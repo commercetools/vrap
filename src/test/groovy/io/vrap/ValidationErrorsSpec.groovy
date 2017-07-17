@@ -9,14 +9,15 @@ import spock.lang.*
  */
 class ValidationErrorsSpec extends Specification {
 
-    def "serialize an ValidationErrors object with a response body"() {
+    def "serialize an ValidationErrors object with different response bodies"() {
         setup:
             def objectMapper = new ObjectMapper();
-            def responseBody = '''{"name": "test1", "name": "test2"}'''
             def errors = new Validator.ValidationErrors([], 0, responseBody)
         when:
             def errorsAsJson = objectMapper.writeValueAsString(errors)
         then:
             errorsAsJson.contains(responseBody)
+        where:
+            responseBody << ['''{"name": "test1", "name": "test2"}''', '''["test1", "test2"]''']
     }
 }
