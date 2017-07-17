@@ -1,6 +1,9 @@
 package io.vrap;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import org.raml.v2.api.model.common.ValidationResult;
@@ -17,6 +20,8 @@ import ratpack.http.Request;
 import ratpack.http.TypedData;
 import ratpack.http.client.ReceivedResponse;
 import ratpack.http.internal.DefaultMediaType;
+import ratpack.jackson.JsonParseOpts;
+import ratpack.jackson.internal.DefaultJsonParseOpts;
 import ratpack.parse.Parse;
 import ratpack.path.PathTokens;
 import ratpack.service.Service;
@@ -192,7 +197,11 @@ public class Validator implements Service {
             Object responseBody = bodyValue;
             if (!ctx.get(VrapApp.VrapOptions.class).getDryRun()) {
                 try {
-                    responseBody = ctx.parse(receivedResponse.getBody(), Parse.of(JsonNode.class));
+                    JsonFactory f = new JsonFactory();
+                    f.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+                    JsonParseOpts opts = new DefaultJsonParseOpts(new ObjectMapper(f));
+
+                    responseBody = ctx.parse(receivedResponse.getBody(), Parse.of(JsonNode.class, opts));
                 } catch (Exception e) {
                     LOG.debug("Unable to parse body of response", e);
                 }
