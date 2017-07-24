@@ -3,14 +3,23 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes" />
-    <title>My API documentation</title>
+    <title>API documentation</title>
     <link rel="import" href="assets/bower_components/api-console/api-console.html" />
+    {{#unless jsonFile}}
     <link rel="import" href="assets/bower_components/raml-json-enhance/raml-json-enhance.html" />
     <script src="assets/bower_components/raml-1-parser-browser/browser_version/index.js"></script>
+    {{/unless}}
   </head>
 <body>
+  {{#unless jsonFile}}
   <raml-json-enhance></raml-json-enhance>
+  {{/unless}}
+  {{#if jsonFile}}
+  <api-console json-file="{{jsonFile}}"></api-console>
+  {{else}}
   <api-console></api-console>
+  {{/if}}
+  {{#unless jsonFile}}
   <script>
   window.addEventListener('raml-json-enhance-ready', function(e) {
     // The e.detail.json contains the final JavaScript object
@@ -63,5 +72,6 @@
           }
         })();
   </script>
+  {{/unless}}
 </body>
 </html>

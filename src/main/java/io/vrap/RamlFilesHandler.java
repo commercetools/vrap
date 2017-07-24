@@ -17,6 +17,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import static ratpack.handlebars.Template.handlebarsTemplate;
 
@@ -43,15 +44,23 @@ class RamlFilesHandler implements Handler {
         final File file = resolvedFilePath.toFile();
         if (file.exists()) {
             final String content;
-            if (QueryParams.resolveIncludes(ctx)) {
-                content = new IncludeResolver().preprocess(resolvedFilePath).toString();
+            Pattern p = Pattern.compile("json$");
+            if (p.matcher(file.getName()).find()) {
+                content = new BaseUriReplace().preprocess(ctx, resolvedFilePath).toString();
+                ctx.byContent(byContentSpec -> byContentSpec
+                        .json(() -> renderReplacedContent(ctx, content))
+                        .noMatch("application/json"));
             } else {
-                content = Files.asByteSource(file).asCharSource(Charsets.UTF_8).read();
+                if (QueryParams.resolveIncludes(ctx)) {
+                    content = new IncludeResolver().preprocess(resolvedFilePath).toString();
+                } else {
+                    content = Files.asByteSource(file).asCharSource(Charsets.UTF_8).read();
+                }
+                ctx.byContent(byContentSpec -> byContentSpec
+                        .type("application/raml+yaml", () -> renderReplacedContent(ctx, content))
+                        .html(() -> renderHtml(ctx, path, content))
+                        .noMatch("application/raml+yaml"));
             }
-            ctx.byContent(byContentSpec -> byContentSpec
-                    .type("application/raml+yaml", () -> renderReplacedContent(ctx, content))
-                    .html(() -> renderHtml(ctx, path, content))
-                    .noMatch("application/raml+yaml"));
         } else {
             ctx.byContent(byContentSpec -> byContentSpec.noMatch(() -> ctx.render(ctx.file("api-raml/" + path))));
         }
