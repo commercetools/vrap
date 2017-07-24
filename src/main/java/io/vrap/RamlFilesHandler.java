@@ -42,7 +42,7 @@ class RamlFilesHandler {
     }
 
     private static class RamlHandler implements Handler {
-        private final static Logger LOG = LoggerFactory.getLogger(RamlRouter.Route.class);
+        private final static Logger LOG = LoggerFactory.getLogger(RamlHandler.class);
         public static final Pattern jsonFile = Pattern.compile("json$");
 
         private final Handler delegate;
