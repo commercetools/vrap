@@ -88,7 +88,7 @@ public class VrapApp {
                         .prefix("api-raml", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
                                         new VrapExtensionHandler(),
-                                        new RamlFilesHandler(contentModifier)))
+                                        new RamlFilesHandler(contentModifier).getHandler()))
                         )
                 )
         );

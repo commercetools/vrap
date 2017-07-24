@@ -12,8 +12,7 @@ import java.nio.file.Path;
 /**
  * Resolves the inline tags of a raml file by inlining their content.
  */
-class BaseUriReplace {
-
+class BaseUriReplacer {
     public StringWriter preprocess(Context ctx, final Path filePath) throws IOException {
         final StringWriter stringWriter = new StringWriter();
 
