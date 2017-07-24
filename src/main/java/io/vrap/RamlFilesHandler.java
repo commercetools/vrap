@@ -55,7 +55,7 @@ class RamlFilesHandler {
                             isJsonFile(),
                             new JsonFileHandler(contentModifier)
                     ),
-                   new RamlFileHandler(contentModifier)
+                    new RamlFileHandler(contentModifier)
             );
             this.delegate = Handlers.register(registry, chain);
         }
