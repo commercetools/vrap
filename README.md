@@ -79,3 +79,9 @@ usage: vrap [OPTIONS] <file.raml>
 
 The source code is available from our github repository [vrapio/vrap](https://github.com/vrapio/vrap/), which contains a *Readme.md* file with build instructions.
 	
+---
+
+[![JetBrains](jetbrains.svg){:height="100"}](https://jetbrains.com/)[![JetBrains](idea.svg){:height="100"}](https://jetbrains.com/idea)  
+_This project is friendly supported by [JetBrains](https://jetbrains.com) & [IntelliJ IDEA](https://jetbrains.com/idea)!_
+
+---
