@@ -52,7 +52,7 @@ public class RatpackPathMapperTest {
         final List<TypeDeclaration> uriParameters = Lists.newArrayList();
         uriParameters.add(new UriParameter("projectKey"));
         uriParameters.add(new UriParameter("key"));
-        uriParameters.add(new UriParameter("ID", "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"));
+        uriParameters.add(new UriParameter("ID", "^" + UUID_PATTERN + "$"));
         return new Object[][] {
                 {"https://api.sphere.io/{projectKey}", "https://api.sphere.io/::" + DIRECTORY_PATTERN, uriParameters},
                 {"https://api.sphere.io/{projectKey}/", "https://api.sphere.io/::" + DIRECTORY_PATTERN, uriParameters},
