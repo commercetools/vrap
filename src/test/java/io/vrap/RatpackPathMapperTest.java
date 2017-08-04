@@ -24,25 +24,26 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 
 @RunWith(DataProviderRunner.class)
 public class RatpackPathMapperTest {
-    public static final String DIRECTORY_PATTERN = "::[-a-zA-Z0-9@:%_\\+.~#?&=]+";
-    public static final String UUID_PATTERN = "::[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+    public static final String DIRECTORY_PATTERN = "[-a-zA-Z0-9@:%_\\+.~#?&=]+";
+    public static final String UUID_PATTERN = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
     @DataProvider
     public static Object[][] testExamples() {
         return new Object[][] {
                 {"https://api.sphere.io", "https://api.sphere.io"},
                 {"https://api.sphere.io/", "https://api.sphere.io/"},
-                {"https://api.sphere.io/{projectKey}", "https://api.sphere.io/" + DIRECTORY_PATTERN},
-                {"https://api.sphere.io/{projectKey}/", "https://api.sphere.io/" + DIRECTORY_PATTERN},
-                {"https://api.sphere.io/{projectKey}/test", "https://api.sphere.io/" + DIRECTORY_PATTERN + "/test"},
-                {"{projectKey}", DIRECTORY_PATTERN},
-                {"{projectKey}/", DIRECTORY_PATTERN},
-                {"{projectKey}/test", DIRECTORY_PATTERN + "/test"},
-                {"{projectKey}/{ID}/", DIRECTORY_PATTERN + "/" + DIRECTORY_PATTERN},
-                {"/{projectKey}", DIRECTORY_PATTERN},
-                {"/{projectKey}/", DIRECTORY_PATTERN},
-                {"/{projectKey}/test", DIRECTORY_PATTERN + "/test"},
-                {"/{projectKey}/{ID}/", DIRECTORY_PATTERN + "/" + DIRECTORY_PATTERN},
+                {"https://api.sphere.io/{projectKey}", "https://api.sphere.io/::" + DIRECTORY_PATTERN},
+                {"https://api.sphere.io/{projectKey}/", "https://api.sphere.io/::" + DIRECTORY_PATTERN},
+                {"https://api.sphere.io/{projectKey}/test", "https://api.sphere.io/::" + DIRECTORY_PATTERN + "/test"},
+                {"{projectKey}", "::" + DIRECTORY_PATTERN},
+                {"{projectKey}/", "::" + DIRECTORY_PATTERN},
+                {"{projectKey}/test", "::" + DIRECTORY_PATTERN + "/test"},
+                {"{projectKey}/{ID}/", "::" + DIRECTORY_PATTERN + "/::" + DIRECTORY_PATTERN},
+                {"/{projectKey}", "::" + DIRECTORY_PATTERN},
+                {"/{projectKey}/", "::" + DIRECTORY_PATTERN},
+                {"/{projectKey}/test", "::" + DIRECTORY_PATTERN + "/test"},
+                {"/{projectKey}/{ID}/", "::" + DIRECTORY_PATTERN + "/::" + DIRECTORY_PATTERN},
+                {"/{projectKey}/key={key}/", "::" + DIRECTORY_PATTERN + "/::key=" + DIRECTORY_PATTERN},
         };
     }
 
@@ -50,19 +51,21 @@ public class RatpackPathMapperTest {
     public static Object[][] testTypeExamples() {
         final List<TypeDeclaration> uriParameters = Lists.newArrayList();
         uriParameters.add(new UriParameter("projectKey"));
+        uriParameters.add(new UriParameter("key"));
         uriParameters.add(new UriParameter("ID", "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"));
         return new Object[][] {
-                {"https://api.sphere.io/{projectKey}", "https://api.sphere.io/" + DIRECTORY_PATTERN, uriParameters},
-                {"https://api.sphere.io/{projectKey}/", "https://api.sphere.io/" + DIRECTORY_PATTERN, uriParameters},
-                {"https://api.sphere.io/{projectKey}/test", "https://api.sphere.io/" + DIRECTORY_PATTERN + "/test", uriParameters},
-                {"{projectKey}", DIRECTORY_PATTERN, uriParameters},
-                {"{projectKey}/", DIRECTORY_PATTERN, uriParameters},
-                {"{projectKey}/test", DIRECTORY_PATTERN + "/test", uriParameters},
-                {"{projectKey}/{ID}/", DIRECTORY_PATTERN + "/" + UUID_PATTERN, uriParameters},
-                {"/{projectKey}", DIRECTORY_PATTERN, uriParameters},
-                {"/{projectKey}/", DIRECTORY_PATTERN, uriParameters},
-                {"/{projectKey}/test", DIRECTORY_PATTERN + "/test", uriParameters},
-                {"/{projectKey}/{ID}/", DIRECTORY_PATTERN + "/" + UUID_PATTERN, uriParameters},
+                {"https://api.sphere.io/{projectKey}", "https://api.sphere.io/::" + DIRECTORY_PATTERN, uriParameters},
+                {"https://api.sphere.io/{projectKey}/", "https://api.sphere.io/::" + DIRECTORY_PATTERN, uriParameters},
+                {"https://api.sphere.io/{projectKey}/test", "https://api.sphere.io/::" + DIRECTORY_PATTERN + "/test", uriParameters},
+                {"{projectKey}", "::" + DIRECTORY_PATTERN, uriParameters},
+                {"{projectKey}/", "::" + DIRECTORY_PATTERN, uriParameters},
+                {"{projectKey}/test", "::" + DIRECTORY_PATTERN + "/test", uriParameters},
+                {"{projectKey}/{ID}/", "::" + DIRECTORY_PATTERN + "/::" + UUID_PATTERN, uriParameters},
+                {"/{projectKey}", "::" + DIRECTORY_PATTERN, uriParameters},
+                {"/{projectKey}/", "::" + DIRECTORY_PATTERN, uriParameters},
+                {"/{projectKey}/test", "::" + DIRECTORY_PATTERN + "/test", uriParameters},
+                {"/{projectKey}/{ID}/", "::" + DIRECTORY_PATTERN + "/::" + UUID_PATTERN, uriParameters},
+                {"/{projectKey}/categories/key={key}/", "::" + DIRECTORY_PATTERN + "/categories/::key=" + DIRECTORY_PATTERN, uriParameters},
         };
     }
 
