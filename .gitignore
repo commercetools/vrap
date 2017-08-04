@@ -12,3 +12,4 @@
 .idea
 src/ratpack/assets/bower_components
 src/ratpack/assets/node_modules
+out

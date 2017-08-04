@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,12 @@ import static ratpack.handlebars.Template.handlebarsTemplate;
 class VrapExtensionHandler implements Handler {
     private final static Logger LOG = LoggerFactory.getLogger(VrapExtensionHandler.class);
 
+    private final String apiUri;
+
+    public VrapExtensionHandler(final String apiUri) {
+        this.apiUri = apiUri;
+    }
+
     @Override
     public void handle(final Context ctx) throws Exception {
         final RamlModelRepository ramlModelRepository = ctx.get(RamlModelRepository.class);
@@ -33,12 +40,13 @@ class VrapExtensionHandler implements Handler {
             final Path filePath = ramlModelRepository.getFilePath();
             List<ResourceExtension> resourceExtensions = resourceExtensions(api.resources(), "");
             final Integer port = ctx.getServerConfig().getPort();
+            final String proxyUri = "http://localhost:" + port.toString() + "/" + apiUri + new URI(api.baseUri().value().replace("{", "%7B").replace("}", "%7D")).getPath().replace("%7B", "{").replace("%7D", "}");
             final ImmutableMap<String, Object> model =
                     ImmutableMap.<String, Object>builder()
                             .put("fileName", filePath.getFileName())
                             .put("queryParams", ctx.getRequest().getQuery())
                             .put("resourceExtensions", resourceExtensions)
-                            .put("proxyUri", "http://localhost:" + port.toString())
+                            .put("proxyUri", proxyUri)
                             .put("modes", Joiner.on(", ").join(VrapMode.values()))
                             .put("flags", Joiner.on(", ").join(ValidationFlag.values()))
                     .build();

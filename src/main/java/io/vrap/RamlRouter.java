@@ -37,25 +37,27 @@ import static ratpack.jackson.Jackson.json;
 class RamlRouter {
 
     private final static Logger LOG = LoggerFactory.getLogger(RamlRouter.class);
+
     private final Handler routes;
 
-    public RamlRouter(final Api api) {
-        routes = Handlers.chain(createRoutes(api));
+    public RamlRouter(final Api api) throws Exception {
+        final String apiPath = new URI(api.baseUri().value().replace("{", "%7B").replace("}", "%7D")).getPath().replace("%7B", "{").replace("%7D", "}");
+        routes = Handlers.prefix(RatpackPathMapper.map(apiPath), Handlers.chain(createRoutes(api)));
     }
 
     public Handler getRoutes() {
         return routes;
     }
 
-    private List<Handler> createRoutes(final Api api) {
+    private List<Handler> createRoutes(final Api api) throws Exception {
         return createRoutes(api, api.resources());
     }
 
-    private List<Handler> createRoutes(final Api api, final List<Resource> resources) {
+    private List<Handler> createRoutes(final Api api, final List<Resource> resources) throws Exception {
         final List<Handler> routes = new ArrayList<>();
 
         for (final Resource resource : resources) {
-            final String ratpackPath = mapToRatpackPath(resource);
+            final String ratpackPath = RatpackPathMapper.map(resource.relativeUri().value(), resource.uriParameters());
 
             final Map<Method, Handler> methodHandlers = new HashMap<>();
 
@@ -96,39 +98,39 @@ class RamlRouter {
         return routes;
     }
 
-    private static String mapToRatpackPath(final Resource resource) {
-        String ramlPath = resource.relativeUri().value().substring(1); // remove leading "/"
-        final String ratpackPath;
-        final String directoryPattern = "[-a-zA-Z0-9@:%_\\+.~#?&=]+";
-
-        Boolean simplePattern = true;
-
-        if (!ramlPath.contains("{") && !ramlPath.contains("}")) {
-            return ramlPath;
-        }
-
-        for (final TypeDeclaration uriParamDeclaration : resource.uriParameters()) {
-            String pattern = directoryPattern;
-            if (uriParamDeclaration instanceof StringTypeDeclaration) {
-                String uriPattern = ((StringTypeDeclaration) uriParamDeclaration).pattern();
-                if (uriPattern != null) {
-                    simplePattern = false;
-                    pattern = uriPattern;
-                }
-            }
-            ramlPath = ramlPath.replace("{" + uriParamDeclaration.name() + "}", pattern).replace("^", "").replace("$", "");
-        }
-
-
-        if (simplePattern && ramlPath.contains("{") && ramlPath.contains("}")) {
-            LOG.warn("Resource path contains unspecified uri parameter: {}", ramlPath);
-            ratpackPath = Pattern.compile("\\{([^}]*)\\}").matcher(ramlPath).replaceAll(directoryPattern);
-        } else {
-            ratpackPath = ramlPath;
-        }
-
-        return "::" + ratpackPath;
-    }
+//    private static String mapToRatpackPath(final Resource resource) {
+//        String ramlPath = resource.relativeUri().value().substring(1); // remove leading "/"
+//        final String ratpackPath;
+//        final String directoryPattern = "[-a-zA-Z0-9@:%_\\+.~#?&=]+";
+//
+//        Boolean simplePattern = true;
+//
+//        if (!ramlPath.contains("{") && !ramlPath.contains("}")) {
+//            return ramlPath;
+//        }
+//
+//        for (final TypeDeclaration uriParamDeclaration : resource.uriParameters()) {
+//            String pattern = directoryPattern;
+//            if (uriParamDeclaration instanceof StringTypeDeclaration) {
+//                String uriPattern = ((StringTypeDeclaration) uriParamDeclaration).pattern();
+//                if (uriPattern != null) {
+//                    simplePattern = false;
+//                    pattern = uriPattern;
+//                }
+//            }
+//            ramlPath = ramlPath.replace("{" + uriParamDeclaration.name() + "}", pattern).replace("^", "").replace("$", "");
+//        }
+//
+//
+//        if (simplePattern && ramlPath.contains("{") && ramlPath.contains("}")) {
+//            LOG.warn("Resource path contains unspecified uri parameter: {}", ramlPath);
+//            ratpackPath = Pattern.compile("\\{([^}]*)\\}").matcher(ramlPath).replaceAll(directoryPattern);
+//        } else {
+//            ratpackPath = ramlPath;
+//        }
+//
+//        return "::" + ratpackPath;
+//    }
 
 
     static class Route implements Handler {
@@ -257,11 +259,17 @@ class RamlRouter {
             final String query = request.getQuery();
             final String boundPath = request.getPath().replaceAll("^api/", "") + (!query.isEmpty() ? "?" + query : "");
 
-            final String baseUri = options.getApiUrl().orElse(api.baseUri().value());
+            final String ramlBaseUri = api.baseUri().value();
+            final String ramlBaseUriPath = URI.create(ramlBaseUri.replace("{", "%7B").replace("}", "%7D")).getPath().replace("%7B", "{").replace("%7D", "}");
+            final String ramlBaseUriHost = ramlBaseUri.replace(ramlBaseUriPath, "");
+
+            final String baseUri = options.getApiUrl().orElse(ramlBaseUriHost);
+
 
             final String uriStr = baseUri.endsWith("/") ?
                     baseUri + boundPath :
                     Joiner.on("/").join(baseUri, boundPath);
+
 
             return URI.create(uriStr);
         }

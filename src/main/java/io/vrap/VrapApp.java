@@ -30,6 +30,7 @@ import static ratpack.handlebars.Template.handlebarsTemplate;
  * The vrap app.
  */
 public class VrapApp {
+    public static final String API_URI = "api";
     private static Logger LOG = LoggerFactory.getLogger(VrapApp.class);
 
     public static void main(String[] args) throws Exception {
@@ -64,6 +65,7 @@ public class VrapApp {
         final List<Path> watchFiles = new IncludeCollector(filePath).collect();
         watchFiles.add(filePath);
 
+
         RatpackServer.start(server -> server
                 .serverConfig(c -> {
                     c.findBaseDir();
@@ -84,10 +86,10 @@ public class VrapApp {
                                         new ApiConsoleHandler("api-console"),
                                         new WebJarHandler("api-console", "3.0.4"),
                                         Handlers.files(ctx.getServerConfig(), Action.noop()))))
-                        .prefix("api", chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
+                        .prefix(API_URI, chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
                         .prefix("api-raml", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
-                                        new VrapExtensionHandler(),
+                                        new VrapExtensionHandler(API_URI),
                                         new RamlFilesHandler(contentModifier).getHandler()))
                         )
                 )
