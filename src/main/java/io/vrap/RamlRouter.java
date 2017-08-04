@@ -42,7 +42,11 @@ class RamlRouter {
 
     public RamlRouter(final Api api) throws Exception {
         final String apiPath = new URI(api.baseUri().value().replace("{", "%7B").replace("}", "%7D")).getPath().replace("%7B", "{").replace("%7D", "}");
-        routes = Handlers.prefix(RatpackPathMapper.map(apiPath), Handlers.chain(createRoutes(api)));
+        if (apiPath != null && !apiPath.equals("")) {
+            routes = Handlers.prefix(RatpackPathMapper.map(apiPath), Handlers.chain(createRoutes(api)));
+        } else {
+            routes = Handlers.chain(createRoutes(api));
+        }
     }
 
     public Handler getRoutes() {
