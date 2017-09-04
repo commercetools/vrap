@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import org.raml.v2.api.model.v10.api.Api;
 import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.resources.Resource;
+import org.raml.v2.api.model.v10.security.SecurityScheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.handling.Context;
@@ -40,7 +41,10 @@ class VrapExtensionHandler implements Handler {
             final Path filePath = ramlModelRepository.getFilePath();
             List<ResourceExtension> resourceExtensions = resourceExtensions(api.resources(), "");
             final Integer port = ctx.getServerConfig().getPort();
+            final String authProxyUri = "http://localhost:" + port.toString() + "/auth";
             final String proxyUri = "http://localhost:" + port.toString() + "/" + apiUri + new URI(api.baseUri().value().replace("{", "%7B").replace("}", "%7D")).getPath().replace("%7B", "{").replace("%7D", "}");
+            List<SecurityScheme> oauthSchemes = api.securitySchemes().stream().filter(securityScheme -> securityScheme.type().equals("OAuth 2.0")).collect(Collectors.toList());
+
             final ImmutableMap<String, Object> model =
                     ImmutableMap.<String, Object>builder()
                             .put("fileName", filePath.getFileName())
@@ -49,6 +53,8 @@ class VrapExtensionHandler implements Handler {
                             .put("proxyUri", proxyUri)
                             .put("modes", Joiner.on(", ").join(VrapMode.values()))
                             .put("flags", Joiner.on(", ").join(ValidationFlag.values()))
+                            .put("authProxyUri", authProxyUri)
+                            .put("oauthSchemes", oauthSchemes.stream().map(securityScheme -> securityScheme.name()).collect(Collectors.toList()))
                     .build();
 
             ctx.byContent(byContentSpec -> byContentSpec

@@ -4,7 +4,6 @@ import com.google.common.base.Joiner;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import org.raml.v2.api.model.v10.api.Api;
 import org.raml.v2.api.model.v10.datamodel.ExampleSpec;
-import org.raml.v2.api.model.v10.datamodel.StringTypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.resources.Resource;
@@ -26,7 +25,6 @@ import ratpack.registry.Registry;
 
 import java.net.URI;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static ratpack.jackson.Jackson.json;

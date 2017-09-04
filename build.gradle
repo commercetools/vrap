@@ -76,7 +76,13 @@ run {
     }
 }
 
-processResources.dependsOn(yarn_install)
+
+task copyConsolePatch(dependsOn: yarn_install, type: Copy) {
+    from "src/ratpack/assets/oauth2-authorization.html"
+    into "src/ratpack/assets/bower_components/oauth-authorization"
+}
+
+processResources.dependsOn(copyConsolePatch)
 
 task buildDocker(type: Docker) {
     baseImage = 'openjdk:8-jre-alpine'

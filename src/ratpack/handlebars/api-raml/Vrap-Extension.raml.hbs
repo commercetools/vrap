@@ -2,6 +2,12 @@
 usage: Adds vrap specific headers
 extends: {{fileName}}{{#if queryParams }}?{{queryParams}}{{/if}}
 baseUri: {{proxyUri}}
+securitySchemes:
+  {{#each oauthSchemes}}
+    {{this}}:
+      settings:
+        accessTokenUri: {{authProxyUri}}/{{this}}
+  {{/each}}
 traits:
     vrapable:
         headers:

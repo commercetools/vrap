@@ -1,5 +1,6 @@
 package io.vrap;
 
+import org.apache.commons.cli.*;
 import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +11,8 @@ import ratpack.handling.Handlers;
 import ratpack.http.client.HttpClient;
 import ratpack.server.RatpackServer;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
@@ -18,11 +21,6 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-
-import org.apache.commons.cli.*;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.X509TrustManager;
 
 import static ratpack.handlebars.Template.handlebarsTemplate;
 
@@ -87,6 +85,7 @@ public class VrapApp {
                                         new WebJarHandler("api-console", "3.0.4"),
                                         Handlers.files(ctx.getServerConfig(), Action.noop()))))
                         .prefix(API_URI, chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
+                        .prefix("auth", chain1 -> chain1.all(new AuthRouter(ramlRepo.getApi()).getRoutes()))
                         .prefix("api-raml", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
                                         new VrapExtensionHandler(API_URI),

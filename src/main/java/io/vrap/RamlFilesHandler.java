@@ -88,12 +88,13 @@ class RamlFilesHandler {
         @Override
         public void handle(Context ctx) throws Exception {
             final RamlModelRepository ramlModelRepository = ctx.get(RamlModelRepository.class);
+            final Api api = ramlModelRepository.getApi();
             final Path filePath = ramlModelRepository.getFilePath();
             final Path parent = ramlModelRepository.getParent();
             final String path = ctx.getPathBinding().getPastBinding();
             final Path resolvedFilePath = path.isEmpty() ? filePath : parent.resolve(path).normalize();
 
-            final String content = new BaseUriReplacer().preprocess(ctx, resolvedFilePath).toString();
+            final String content = new BaseUriReplacer().preprocess(ctx, resolvedFilePath, api).toString();
             ctx.byContent(byContentSpec -> byContentSpec
                     .json(() -> renderReplacedContent(ctx, content))
                     .noMatch("application/json"));
