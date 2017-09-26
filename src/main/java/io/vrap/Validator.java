@@ -246,8 +246,12 @@ public class Validator implements Service {
             }
         }
         for (final String queryParamName : queryParams.keySet()) {
-            if (queryParamToDeclaration.containsKey(queryParamName)) {
-                final TypeDeclaration queryParamDeclaration = queryParamToDeclaration.get(queryParamName);
+            String declarationMatch = queryParamToDeclaration.keySet().stream().filter(s -> {
+                final String pattern = s.startsWith("/") && s.endsWith("/") ? s.substring(1, s.length() - 1) : s;
+                return queryParamName.matches(pattern);
+            }).findFirst().orElse(null);
+            if (queryParamToDeclaration.containsKey(declarationMatch)) {
+                final TypeDeclaration queryParamDeclaration = queryParamToDeclaration.get(declarationMatch);
                 for (final String queryParamValue : queryParams.get(queryParamName)) {
                     final String validationContext = String.join("=", queryParamName, queryParamValue);
                     final List<ValidationError> errors = validate(queryParamValue, queryParamDeclaration, ValidationKind.queryParameter, validationContext);
