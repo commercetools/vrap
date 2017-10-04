@@ -55,7 +55,7 @@ dependencies {
     compile 'org.webjars.npm:api-console:3.0.4'
 
     compile 'commons-cli:commons-cli:1.4'
-    compile 'org.raml:raml-parser-2:1.0.11'
+    compile 'org.raml:raml-parser-2:1.0.15'
     compile ratpack.dependency('handlebars')
 
     compile 'org.assertj:assertj-core:3.6.2'
