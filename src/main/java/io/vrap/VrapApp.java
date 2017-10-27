@@ -63,7 +63,10 @@ public class VrapApp {
         final List<Path> watchFiles = new IncludeCollector(filePath).collect();
         watchFiles.add(filePath);
 
-
+        if (options.getCheckOnly()) {
+            ramlRepo.getApi();
+            System.exit(0);
+        }
         RatpackServer.start(server -> server
                 .serverConfig(c -> {
                     c.findBaseDir();
@@ -105,6 +108,7 @@ public class VrapApp {
         private SSLVerificationMode sslVerificationMode;
         private int clientConnectionPoolSize;
         private Boolean dryRun;
+        private Boolean checkOnly;
 
         public VrapOptions(String[] args)
         {
@@ -124,6 +128,7 @@ public class VrapApp {
             }
 
             dryRun = cmd.hasOption(getDryRunOption().getOpt());
+            checkOnly = cmd.hasOption(getCheckOnlyOption().getOpt());
             mode = parseModeOption(cmd.getOptionValue(getModeOption().getOpt(), VrapMode.proxy.name()));
             port = NumberUtils.toInt(cmd.getOptionValue(getPortOption().getOpt()), 5050);
             apiUrl = cmd.getOptionValue(getApiUrlOption().getOpt());
@@ -156,8 +161,18 @@ public class VrapApp {
             options.addOption(getClientConnectionPoolSizeOption());
             options.addOption(getHelpOption());
             options.addOption(getDryRunOption());
-
+            options.addOption(getCheckOnlyOption());
             return options;
+        }
+
+        private Option getCheckOnlyOption()
+        {
+            return Option.builder("c")
+                    .longOpt("checkOnly")
+                    .desc("Check given raml file for errors")
+                    .hasArg(false)
+                    .required(false)
+                    .build();
         }
 
         private Option getModeOption()
@@ -302,5 +317,7 @@ public class VrapApp {
         }
 
         public Boolean getDryRun() { return dryRun; }
+
+        public Boolean getCheckOnly() { return checkOnly; }
     }
 }
