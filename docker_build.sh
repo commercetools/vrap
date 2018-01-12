@@ -5,5 +5,5 @@ docker run --rm -v ${PWD}:/vrap -v${HOME}/.gradle:/root/.gradle -w /vrap openjdk
 echo "Done."
 
 echo "Build runtime container:"
-docker build -t vrapio/vrap .
+docker build --rm -t vrapio/vrap .
 echo "Done."
