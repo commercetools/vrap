@@ -21,6 +21,7 @@ import ratpack.http.TypedData;
 import ratpack.http.client.HttpClient;
 import ratpack.http.client.ReceivedResponse;
 import ratpack.http.client.RequestSpec;
+import ratpack.registry.NotInRegistryException;
 import ratpack.registry.Registry;
 
 import java.net.URI;
@@ -195,18 +196,16 @@ class RamlRouter {
             ctx.getRequest().getBody().then(body -> validateRequest(ctx, body));
         }
 
-        private void validateRequest(final Context ctx, final TypedData body) {
+        private void validateRequest(final Context ctx, final TypedData body) throws Exception {
             final Validator validator = ctx.get(Validator.class);
             final boolean dryRun = ctx.get(VrapApp.VrapOptions.class).getDryRun();
             final Method method = ctx.get(Method.class);
             final Optional<Validator.ValidationErrors> validationErrors = validator.validateRequest(ctx, body, method);
 
-            if (validationErrors.isPresent() && !dryRun) {
-                ctx.getResponse().status(VrapStatus.INVALID_REQUEST);
-                ctx.render(json(validationErrors.get()));
-            } else {
-                ctx.next(Registry.single(body));
-            }
+            ctx.next(Registry.of(registrySpec -> {
+                registrySpec.add(TypedData.class, body);
+                validationErrors.ifPresent(validationErrors1 -> registrySpec.add(Validator.ValidationErrors.class, validationErrors1));
+            }));
         }
     }
 
@@ -306,6 +305,7 @@ class RamlRouter {
     private static class ReceivedResponseValidationHandler implements Handler {
 
         @Override
+        @SuppressWarnings("unchecked")
         public void handle(Context ctx) throws Exception {
             final ReceivedResponse receivedResponse = ctx.get(ReceivedResponse.class);
             final Validator validator = ctx.get(Validator.class);
@@ -313,6 +313,25 @@ class RamlRouter {
             final Method method = ctx.get(Method.class);
             final Optional<Validator.ValidationErrors> receivedResponseErrors = validator.validateReceivedResponse(ctx, receivedResponse, method);
 
+            Optional<Validator.ValidationErrors> requestValidationErrors;
+            try {
+                requestValidationErrors = Optional.of(ctx.get(Validator.ValidationErrors.class));
+            } catch (NotInRegistryException e) {
+                requestValidationErrors = Optional.empty();
+            }
+
+            if (requestValidationErrors.isPresent() && !dryRun) {
+                Integer statusCode = receivedResponse.getStatusCode();
+                if (statusCode < 400 && statusCode > 499) {
+                    ctx.getResponse().status(VrapStatus.INVALID_REQUEST);
+                    Validator.ValidationErrors errors = new Validator.ValidationErrors(
+                            requestValidationErrors.get().getErrors(),
+                            receivedResponse.getStatusCode(),
+                            receivedResponse.getBody().getText());
+                    ctx.render(json(errors));
+                    return;
+                }
+            }
             if (receivedResponseErrors.isPresent() && !dryRun) {
                 ctx.getResponse().status(VrapStatus.INVALID_RESPONSE);
                 ctx.render(json(receivedResponseErrors.get()));
