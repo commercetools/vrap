@@ -29,6 +29,7 @@ import static ratpack.handlebars.Template.handlebarsTemplate;
  */
 public class VrapApp {
     public static final String API_URI = "api";
+    public static final String RMF_URI = "rmf";
     private static Logger LOG = LoggerFactory.getLogger(VrapApp.class);
 
     public static void main(String[] args) throws Exception {
@@ -59,6 +60,7 @@ public class VrapApp {
         }
 
         final RamlModelRepository ramlRepo = RamlModelRepository.of(filePath);
+        final RmfModelRepository rmfRepo = RmfModelRepository.of(filePath);
         final FileContentModifier contentModifier = new FileContentModifier(fileName.toString());
         final List<Path> watchFiles = new IncludeCollector(filePath).collect();
         watchFiles.add(filePath);
@@ -75,6 +77,7 @@ public class VrapApp {
                 .registry(Guice.registry(b -> b.module(HandlebarsModule.class)
                         .bindInstance(options)
                         .bindInstance(ramlRepo)
+                        .bindInstance(rmfRepo)
                         .bindInstance(HttpClient.class, HttpClient.of(httpClientSpec -> httpClientSpec.poolSize(options.getClientConnectionPoolSize())))
                         .bind(Validator.class)))
                 .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate("index.html")))
@@ -94,6 +97,7 @@ public class VrapApp {
                                         new VrapExtensionHandler(API_URI),
                                         new RamlFilesHandler(contentModifier).getHandler()))
                         )
+                        .prefix(RMF_URI, chain1 -> chain1.all(new RmfRouter(rmfRepo.getApi()).getRoutes()))
                 )
         );
     }

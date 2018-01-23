@@ -36,6 +36,9 @@ apply plugin: "docker"
 
 repositories {
     jcenter()
+    flatDir {
+        dirs 'libs'
+    }
 }
 
 node {
@@ -51,6 +54,8 @@ node {
 
 dependencies {
     testCompile 'com.tngtech.java:junit-dataprovider:1.12.0'
+
+    compile 'io.vrap:raml-model:1.0-SNAPSHOT-all'
 
     compile 'org.webjars.npm:api-console:3.0.4'
 

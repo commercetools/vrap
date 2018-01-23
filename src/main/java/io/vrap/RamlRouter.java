@@ -40,7 +40,7 @@ class RamlRouter {
     private final Handler routes;
 
     public RamlRouter(final Api api) throws Exception {
-        final String apiPath = RatpackPathMapper.map(new URI(api.baseUri().value().replace("{", "%7B").replace("}", "%7D")).getPath().replace("%7B", "{").replace("%7D", "}"));
+        final String apiPath = RamlRatpackPathMapper.map(new URI(api.baseUri().value().replace("{", "%7B").replace("}", "%7D")).getPath().replace("%7B", "{").replace("%7D", "}"));
         if (apiPath != null && !apiPath.equals("")) {
             routes = Handlers.prefix(apiPath, Handlers.chain(createRoutes(api)));
         } else {
@@ -60,7 +60,8 @@ class RamlRouter {
         final List<Handler> routes = new ArrayList<>();
 
         for (final Resource resource : resources) {
-            final String ratpackPath = RatpackPathMapper.map(resource.relativeUri().value(), resource.uriParameters());
+            final String value = resource.relativeUri().value();
+            final String ratpackPath = RamlRatpackPathMapper.map(value, resource.uriParameters());
 
             final Map<Method, Handler> methodHandlers = new HashMap<>();
 

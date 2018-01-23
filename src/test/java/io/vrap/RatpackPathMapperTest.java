@@ -72,13 +72,13 @@ public class RatpackPathMapperTest {
     @Test
     @UseDataProvider("testExamples")
     public void mapping(final String path, final String expectedPath) {
-        assertThat(RatpackPathMapper.map(path)).isEqualTo(expectedPath);
+        assertThat(RamlRatpackPathMapper.map(path)).isEqualTo(expectedPath);
     }
 
     @Test
     @UseDataProvider("testTypeExamples")
     public void mappingWithUriParameters(final String path, final String expectedPath, final List<TypeDeclaration> uriParameters) {
-        assertThat(RatpackPathMapper.map(path, uriParameters)).isEqualTo(expectedPath);
+        assertThat(RamlRatpackPathMapper.map(path, uriParameters)).isEqualTo(expectedPath);
     }
 
     private static class UriParameter implements StringTypeDeclaration {
