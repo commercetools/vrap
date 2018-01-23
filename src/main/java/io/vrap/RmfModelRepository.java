@@ -1,5 +1,6 @@
 package io.vrap;
 
+import com.google.common.collect.Lists;
 import io.vrap.rmf.raml.model.RamlDiagnostic;
 import io.vrap.rmf.raml.model.RamlModelBuilder;
 import io.vrap.rmf.raml.model.RamlModelResult;
@@ -26,14 +27,20 @@ class RmfModelRepository implements Service {
 
     RmfModelRepository(final Path filePath) {
         this.filePath = filePath;
-        this.ramlModelResult = new RamlModelBuilder().buildApi(URI.createURI(filePath.toAbsolutePath().toUri().toString()));
+        RamlModelResult<Api> ramlModelResult = null;
 
-        if (ramlModelResult.getValidationResults().size() > 0) {
-            for(RamlDiagnostic validationResult : ramlModelResult.getValidationResults()) {
+        try {
+            ramlModelResult = new RamlModelBuilder().buildApi(URI.createURI(filePath.toAbsolutePath().toUri().toString()));
+        } catch (Exception e) {
+            LOG.error("could not parse raml files using RMF");
+        }
+
+        if (ramlModelResult != null && ramlModelResult.getValidationResults().size() > 0) {
+            for (RamlDiagnostic validationResult : ramlModelResult.getValidationResults()) {
                 LOG.error("{}", validationResult.toString());
             }
-            System.exit(1);
         }
+        this.ramlModelResult = ramlModelResult;
     }
 
     /**
@@ -66,12 +73,12 @@ class RmfModelRepository implements Service {
 
     @Nonnull
     public List<RamlDiagnostic> getValidationResults() {
-        return ramlModelResult.getValidationResults();
+        return ramlModelResult != null ? ramlModelResult.getValidationResults(): Lists.newArrayList();
     }
 
     @Nullable
     public Api getApi() {
-        return (Api)ramlModelResult.getRootObject();
+        return ramlModelResult != null ? (Api)ramlModelResult.getRootObject(): null;
     }
 
     public static RmfModelRepository of(final Path filePath) {

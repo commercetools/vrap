@@ -1,6 +1,7 @@
 package io.vrap;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.Lists;
 import org.raml.v2.api.model.v10.api.Api;
 import org.raml.v2.api.model.v10.security.SecurityScheme;
 import org.slf4j.Logger;
@@ -27,7 +28,10 @@ public class AuthRouter {
     private final Handler routes;
 
     public AuthRouter(final Api api) throws Exception {
-        List<SecurityScheme> oauthSchemes = api.securitySchemes().stream().filter(securityScheme -> securityScheme.type().equals("OAuth 2.0")).collect(Collectors.toList());
+
+        List<SecurityScheme> oauthSchemes = api != null ?
+                api.securitySchemes().stream().filter(securityScheme -> securityScheme.type().equals("OAuth 2.0")).collect(Collectors.toList()) :
+                Lists.newArrayList();
 
         routes = Handlers.chain(createRoutes(oauthSchemes));
     }

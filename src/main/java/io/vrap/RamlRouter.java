@@ -1,6 +1,7 @@
 package io.vrap;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import org.raml.v2.api.model.v10.api.Api;
 import org.raml.v2.api.model.v10.datamodel.ExampleSpec;
@@ -40,7 +41,9 @@ class RamlRouter {
     private final Handler routes;
 
     public RamlRouter(final Api api) throws Exception {
-        final String apiPath = RamlRatpackPathMapper.map(new URI(api.baseUri().value().replace("{", "%7B").replace("}", "%7D")).getPath().replace("%7B", "{").replace("%7D", "}"));
+        final String apiPath = api != null ?
+            RamlRatpackPathMapper.map(new URI(api.baseUri().value().replace("{", "%7B").replace("}", "%7D")).getPath().replace("%7B", "{").replace("%7D", "}")) :
+            "";
         if (apiPath != null && !apiPath.equals("")) {
             routes = Handlers.prefix(apiPath, Handlers.chain(createRoutes(api)));
         } else {
@@ -53,7 +56,7 @@ class RamlRouter {
     }
 
     private List<Handler> createRoutes(final Api api) throws Exception {
-        return createRoutes(api, api.resources());
+        return api != null ? createRoutes(api, api.resources()) : Lists.newArrayList();
     }
 
     private List<Handler> createRoutes(final Api api, final List<Resource> resources) throws Exception {
