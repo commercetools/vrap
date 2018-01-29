@@ -79,7 +79,9 @@ public class VrapApp {
                         .bindInstance(ramlRepo)
                         .bindInstance(rmfRepo)
                         .bindInstance(HttpClient.class, HttpClient.of(httpClientSpec -> httpClientSpec.poolSize(options.getClientConnectionPoolSize())))
-                        .bind(Validator.class)))
+                        .bind(Validator.class)
+                        .bind(RmfValidator.class)
+                ))
                 .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate("index.html")))
                         .prefix("console4", chain1 ->
                                 chain1.all(ctx -> ctx.insert(

@@ -76,7 +76,9 @@ class RmfRouter {
 
                     for (final Body bodyDeclaration : method.getBodies()) {
                         final Route route = new Route(resource, method);
-                        contentTypeHandlers.put(bodyDeclaration.getName(), route);
+                        for( final String contentType: bodyDeclaration.getContentTypes()) {
+                            contentTypeHandlers.put(contentType, route);
+                        }
                     }
                     methodHandlers.put(method, Handlers.chain(ctx2 ->
                             ctx2.byContent(byContentSpec -> contentTypeHandlers.entrySet()
@@ -202,14 +204,14 @@ class RmfRouter {
         }
 
         private void validateRequest(final Context ctx, final TypedData body) throws Exception {
-//            final Validator validator = ctx.get(Validator.class);
-//            final boolean dryRun = ctx.get(VrapApp.VrapOptions.class).getDryRun();
-//            final Method method = ctx.get(Method.class);
-//            final Optional<Validator.ValidationErrors> validationErrors = validator.validateRequest(ctx, body, method);
+            final RmfValidator validator = ctx.get(RmfValidator.class);
+            final boolean dryRun = ctx.get(VrapApp.VrapOptions.class).getDryRun();
+            final Method method = ctx.get(Method.class);
+            final Optional<RmfValidator.ValidationErrors> validationErrors = validator.validateRequest(ctx, body, method);
 
             ctx.next(Registry.of(registrySpec -> {
                 registrySpec.add(TypedData.class, body);
-//                validationErrors.ifPresent(validationErrors1 -> registrySpec.add(Validator.ValidationErrors.class, validationErrors1));
+                validationErrors.ifPresent(validationErrors1 -> registrySpec.add(RmfValidator.ValidationErrors.class, validationErrors1));
             }));
         }
     }
@@ -313,23 +315,23 @@ class RmfRouter {
         @SuppressWarnings("unchecked")
         public void handle(Context ctx) throws Exception {
             final ReceivedResponse receivedResponse = ctx.get(ReceivedResponse.class);
-//            final Validator validator = ctx.get(Validator.class);
+            final RmfValidator validator = ctx.get(RmfValidator.class);
             final Boolean dryRun = ctx.get(VrapApp.VrapOptions.class).getDryRun();
-//            final Method method = ctx.get(Method.class);
-            final Optional<Validator.ValidationErrors> receivedResponseErrors = Optional.empty(); // validator.validateReceivedResponse(ctx, receivedResponse, method);
+            final Method method = ctx.get(Method.class);
+            final Optional<RmfValidator.ValidationErrors> receivedResponseErrors = validator.validateReceivedResponse(ctx, receivedResponse, method);
 
-            Optional<Validator.ValidationErrors> requestValidationErrors;
+            Optional<RmfValidator.ValidationErrors> requestValidationErrors;
             try {
-                requestValidationErrors = Optional.of(ctx.get(Validator.ValidationErrors.class));
+                requestValidationErrors = Optional.of(ctx.get(RmfValidator.ValidationErrors.class));
             } catch (NotInRegistryException e) {
                 requestValidationErrors = Optional.empty();
             }
 
             if (requestValidationErrors.isPresent() && !dryRun) {
                 Integer statusCode = receivedResponse.getStatusCode();
-                if (statusCode < 400 && statusCode > 499) {
+                if (statusCode < 400 || statusCode > 499) {
                     ctx.getResponse().status(VrapStatus.INVALID_REQUEST);
-                    Validator.ValidationErrors errors = new Validator.ValidationErrors(
+                    RmfValidator.ValidationErrors errors = new RmfValidator.ValidationErrors(
                             requestValidationErrors.get().getErrors(),
                             receivedResponse.getStatusCode(),
                             receivedResponse.getBody().getText());

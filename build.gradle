@@ -3,7 +3,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath "io.ratpack:ratpack-gradle:1.4.5"
+        classpath "io.ratpack:ratpack-gradle:1.5.1"
         classpath "com.github.jengelman.gradle.plugins:shadow:1.2.3"
         classpath "se.transmode.gradle:gradle-docker:1.2"
     }
@@ -16,7 +16,7 @@ plugins {
 ext {
     versions = [
             log4j  : "2.6.2",
-            ratpack: '1.4.5',
+            ratpack: '1.5.1',
             slf4j  : "1.7.21",
             spock  : "1.0-groovy-2.4",
     ]
