@@ -3,6 +3,8 @@ package io.vrap;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.vrap.rmf.raml.model.modules.Api;
 import io.vrap.rmf.raml.model.resources.Method;
 import io.vrap.rmf.raml.model.resources.Resource;
@@ -250,10 +252,11 @@ class RmfRouter {
             final Request request = ctx.getRequest();
             final TypedData body = ctx.get(TypedData.class);
             final HttpClient httpClient = ctx.get(HttpClient.class);
+            final Boolean insecureSSL = ctx.get(VrapApp.VrapOptions.class).getSslVerificationMode() == SSLVerificationMode.insecure;
             final URI proxiedUri = proxiedUri(ctx);
             LOG.info("Forward to: {}", proxiedUri);
 
-            httpClient.request(proxiedUri, proxyRequest(body, request))
+            httpClient.request(proxiedUri, proxyRequest(body, request, insecureSSL))
                     .then(receivedResponse ->
                             ctx.next(Registry.builder().add(receivedResponse).add(proxiedUri).build()));
         }
@@ -282,8 +285,11 @@ class RmfRouter {
             return URI.create(uriStr);
         }
 
-        private Action<RequestSpec> proxyRequest(final TypedData body, final Request request) {
+        private Action<RequestSpec> proxyRequest(final TypedData body, final Request request, final Boolean insecureSSL) {
             return spec -> {
+                if (insecureSSL) {
+                    spec.sslContext(SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build());
+                }
                 spec.getBody().buffer(body.getBuffer());
                 spec.getHeaders().copy(request.getHeaders());
                 spec.method(request.getMethod());
