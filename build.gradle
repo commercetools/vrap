@@ -82,7 +82,7 @@ run {
 }
 
 
-task copyConsolePatch(dependsOn: yarn_install, type: Copy) {
+task copyConsolePatch(dependsOn: npmInstall, type: Copy) {
     from "src/ratpack/assets/oauth2-authorization.html"
     into "src/ratpack/assets/bower_components/oauth-authorization"
 }

@@ -1,3 +1,7 @@
 .idea
 .gradle
 .git
+out/
+build/
+src/ratpack/assets/bower_components/
+src/ratpack/assets/node_modules/

@@ -15,11 +15,3 @@ cache:
 
 script:
   - ./gradlew check
-
-after_success:
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then
-    ./gradlew shadowJar;
-    docker build -t vrapio/vrap .;
-    docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-    docker push vrapio/vrap;
-    fi
