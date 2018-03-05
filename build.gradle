@@ -37,9 +37,6 @@ apply plugin: "docker"
 
 repositories {
     jcenter()
-    maven {
-        url 'https://dl.bintray.com/vrapio/vrapio'
-    }
 }
 
 node {
