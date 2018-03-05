@@ -19,6 +19,7 @@ ext {
             ratpack: '1.5.4',
             slf4j  : "1.7.21",
             spock  : "1.0-groovy-2.4",
+            rmf : "0.1.0-20180304205259"
     ]
 }
 
@@ -36,8 +37,8 @@ apply plugin: "docker"
 
 repositories {
     jcenter()
-    flatDir {
-        dirs 'libs'
+    maven {
+        url 'https://dl.bintray.com/vrapio/vrapio'
     }
 }
 
@@ -55,7 +56,7 @@ node {
 dependencies {
     testCompile 'com.tngtech.java:junit-dataprovider:1.12.0'
 
-    compile 'io.vrap:raml-model:1.0-SNAPSHOT-all'
+    compile "io.vrap.rmf:raml-model:${versions.rmf}"
 
     compile 'org.webjars.npm:api-console:3.0.4'
 
