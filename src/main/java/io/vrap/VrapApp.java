@@ -42,16 +42,22 @@ public class VrapApp {
         final Path filePath = options.getFilePath();
         final Path fileName = filePath.getFileName();
 
-        final RamlModelRepository ramlRepo = RamlModelRepository.of(filePath);
-        final RmfModelRepository rmfRepo = RmfModelRepository.of(filePath);
         final FileContentModifier contentModifier = new FileContentModifier(fileName.toString());
         final List<Path> watchFiles = new IncludeCollector(filePath).collect();
         watchFiles.add(filePath);
 
         if (options.getCheckOnly()) {
-            ramlRepo.getApi();
+            RamlModelRepository.of(filePath).getApi();
             System.exit(0);
         }
+        if (options.getRmfCheckOnly()) {
+            RmfModelRepository.of(filePath, true);
+            System.exit(0);
+        }
+
+        final RamlModelRepository ramlRepo = RamlModelRepository.of(filePath);
+        final RmfModelRepository rmfRepo = RmfModelRepository.of(filePath);
+
         RatpackServer.start(server -> server
                 .serverConfig(c -> {
                     c.findBaseDir();
@@ -107,6 +113,7 @@ public class VrapApp {
         private int clientConnectionPoolSize;
         private Boolean dryRun;
         private Boolean checkOnly;
+        private Boolean rmfCheckOnly;
 
         public VrapOptions(String[] args)
         {
@@ -127,6 +134,7 @@ public class VrapApp {
 
             dryRun = cmd.hasOption(getDryRunOption().getOpt());
             checkOnly = cmd.hasOption(getCheckOnlyOption().getOpt());
+            rmfCheckOnly = cmd.hasOption(getRmfCheckOnlyOption().getOpt());
             mode = parseModeOption(cmd.getOptionValue(getModeOption().getOpt(), VrapMode.proxy.name()));
             port = NumberUtils.toInt(cmd.getOptionValue(getPortOption().getOpt()), 5050);
             apiUrl = cmd.getOptionValue(getApiUrlOption().getOpt());
@@ -160,6 +168,7 @@ public class VrapApp {
             options.addOption(getHelpOption());
             options.addOption(getDryRunOption());
             options.addOption(getCheckOnlyOption());
+            options.addOption(getRmfCheckOnlyOption());
             return options;
         }
 
@@ -168,6 +177,16 @@ public class VrapApp {
             return Option.builder("c")
                     .longOpt("checkOnly")
                     .desc("Check given raml file for errors")
+                    .hasArg(false)
+                    .required(false)
+                    .build();
+        }
+
+        private Option getRmfCheckOnlyOption()
+        {
+            return Option.builder("rc")
+                    .longOpt("rmfCheckOnly")
+                    .desc("Check given raml file for errors using RMF")
                     .hasArg(false)
                     .required(false)
                     .build();
@@ -317,5 +336,8 @@ public class VrapApp {
         public Boolean getDryRun() { return dryRun; }
 
         public Boolean getCheckOnly() { return checkOnly; }
+
+        public Boolean getRmfCheckOnly() { return rmfCheckOnly; }
+
     }
 }

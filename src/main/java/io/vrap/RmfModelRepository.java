@@ -25,14 +25,18 @@ class RmfModelRepository implements Service {
     private final Path filePath;
     private final RamlModelResult<Api> ramlModelResult;
 
-    RmfModelRepository(final Path filePath) {
+    RmfModelRepository(final Path filePath, final Boolean strict) {
         this.filePath = filePath;
         RamlModelResult<Api> ramlModelResult = null;
 
         try {
             ramlModelResult = new RamlModelBuilder().buildApi(URI.createURI(filePath.toAbsolutePath().toUri().toString()));
         } catch (Exception e) {
-            LOG.error("could not parse raml files using RMF");
+            if (strict) {
+                throw e;
+            } else {
+                LOG.error("could not parse raml files using RMF");
+            }
         }
 
         if (ramlModelResult != null && ramlModelResult.getValidationResults().size() > 0) {
@@ -82,6 +86,10 @@ class RmfModelRepository implements Service {
     }
 
     public static RmfModelRepository of(final Path filePath) {
-        return new RmfModelRepository(filePath);
+        return of(filePath, false);
+    }
+
+    public static RmfModelRepository of(final Path filePath, final Boolean strict) {
+        return new RmfModelRepository(filePath, strict);
     }
 }
