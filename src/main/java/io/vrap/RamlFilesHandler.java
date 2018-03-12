@@ -33,8 +33,8 @@ class RamlFilesHandler {
 
     private final Handler handler;
 
-    public RamlFilesHandler(final FileContentModifier contentModifier) {
-        handler = new RamlHandler(contentModifier);
+    public RamlFilesHandler(final FileContentModifier contentModifier, final String extensionDir, final String apiPath) {
+        handler = new RamlHandler(contentModifier, extensionDir, apiPath);
     }
 
     public Handler getHandler() {
@@ -47,15 +47,15 @@ class RamlFilesHandler {
 
         private final Handler delegate;
 
-        public RamlHandler(FileContentModifier contentModifier) {
+        public RamlHandler(final FileContentModifier contentModifier, final String extensionDir, final String apiPath) {
             final Registry registry = Registry.builder().add("get").build();
             final Handler chain = Handlers.chain(
                     RequestLogger.ncsa(LOG),
                     Handlers.when(
                             isJsonFile(),
-                            new JsonFileHandler(contentModifier)
+                            new JsonFileHandler(contentModifier, extensionDir, apiPath)
                     ),
-                    new RamlFileHandler(contentModifier)
+                    new RamlFileHandler(contentModifier, extensionDir, apiPath)
             );
             this.delegate = Handlers.register(registry, chain);
         }
@@ -81,8 +81,8 @@ class RamlFilesHandler {
 
     private static class JsonFileHandler extends FileHandler {
 
-        public JsonFileHandler(FileContentModifier contentModifier) {
-            super(contentModifier);
+        public JsonFileHandler(final FileContentModifier contentModifier, final String extensionDir, final String apiPath) {
+            super(contentModifier, extensionDir, apiPath);
         }
 
         @Override
@@ -94,7 +94,7 @@ class RamlFilesHandler {
             final String path = ctx.getPathBinding().getPastBinding();
             final Path resolvedFilePath = path.isEmpty() ? filePath : parent.resolve(path).normalize();
 
-            final String content = new BaseUriReplacer().preprocess(ctx, resolvedFilePath, api).toString();
+            final String content = new BaseUriReplacer().preprocess(ctx, resolvedFilePath, api, apiPath).toString();
             ctx.byContent(byContentSpec -> byContentSpec
                     .json(() -> renderReplacedContent(ctx, content))
                     .noMatch("application/json"));
@@ -103,8 +103,8 @@ class RamlFilesHandler {
 
     private static class RamlFileHandler extends FileHandler {
 
-        public RamlFileHandler(FileContentModifier contentModifier) {
-            super(contentModifier);
+        public RamlFileHandler(final FileContentModifier contentModifier, final String extensionDir, final String apiPath) {
+            super(contentModifier, extensionDir, apiPath);
         }
 
         @Override
@@ -150,9 +150,13 @@ class RamlFilesHandler {
     abstract private static class FileHandler implements Handler {
 
         private final FileContentModifier contentModifier;
+        final String extensionDir;
+        final String apiPath;
 
-        public FileHandler(final FileContentModifier contentModifier) {
+        public FileHandler(final FileContentModifier contentModifier, final String extensionDir, final String apiPath) {
             this.contentModifier = contentModifier;
+            this.extensionDir = extensionDir;
+            this.apiPath = apiPath;
         }
 
         protected void renderReplacedContent(final Context ctx, final String content) {

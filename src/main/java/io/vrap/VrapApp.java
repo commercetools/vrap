@@ -25,6 +25,11 @@ import static ratpack.handlebars.Template.handlebarsTemplate;
 public class VrapApp {
     public static final String API_URI = "api";
     public static final String RMF_URI = "rmf";
+    public static final String PARSER_RMF = "rmf";
+    public static final String PARSER_RAML = "raml";
+    public static final String API_RAML = "api-" + PARSER_RAML;
+    public static final String API_RMF = "api-" + PARSER_RMF;
+
     private static Logger LOG = LoggerFactory.getLogger(VrapApp.class);
 
     public static void main(String[] args) throws Exception {
@@ -61,23 +66,32 @@ public class VrapApp {
                         .bind(RmfValidator.class)
                 ))
                 .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate("index.html")))
+                        .prefix("rmf-console4", chain1 ->
+                                chain1.all(ctx -> ctx.insert(
+                                        new ApiConsoleHandler("console4", filePath, API_RMF),
+                                        Handlers.files(ctx.getServerConfig(), Action.noop()))))
                         .prefix("console4", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
-                                        new ApiConsoleHandler("console4"),
+                                        new ApiConsoleHandler("console4", filePath, API_RAML),
                                         Handlers.files(ctx.getServerConfig(), Action.noop()))))
                         .prefix("api-console", chain1 ->
                                 chain1.all(ctx -> ctx.insert(
-                                        new ApiConsoleHandler("api-console"),
+                                        new ApiConsoleHandler("api-console", filePath, API_RAML),
                                         new WebJarHandler("api-console", "3.0.4"),
                                         Handlers.files(ctx.getServerConfig(), Action.noop()))))
                         .prefix(API_URI, chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
+                        .prefix(RMF_URI, chain1 -> chain1.all(new RmfRouter(rmfRepo.getApi()).getRoutes()))
                         .prefix("auth", chain1 -> chain1.all(new AuthRouter(ramlRepo.getApi()).getRoutes()))
-                        .prefix("api-raml", chain1 ->
+                        .prefix(API_RAML, chain1 ->
                                 chain1.all(ctx -> ctx.insert(
                                         new VrapExtensionHandler(API_URI),
-                                        new RamlFilesHandler(contentModifier).getHandler()))
+                                        new RamlFilesHandler(contentModifier, API_RAML, API_URI).getHandler()))
                         )
-                        .prefix(RMF_URI, chain1 -> chain1.all(new RmfRouter(rmfRepo.getApi()).getRoutes()))
+                        .prefix(API_RMF, chain1 ->
+                                chain1.all(ctx -> ctx.insert(
+                                        new VrapExtensionHandler(RMF_URI),
+                                        new RamlFilesHandler(contentModifier, API_RMF, RMF_URI).getHandler()))
+                        )
                 )
         );
     }
