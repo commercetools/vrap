@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * Resolves the inline tags of a raml file by inlining their content.
  */
 class BaseUriReplacer {
-    public StringWriter preprocess(Context ctx, final Path filePath, final Api api) throws IOException {
+    public StringWriter preprocess(Context ctx, final Path filePath, final Api api, final String apiPath) throws IOException {
         final Integer port = ctx.getServerConfig().getPort();
         final StringWriter stringWriter = new StringWriter();
         final String baseUri = api.baseUri().value();
@@ -28,7 +28,7 @@ class BaseUriReplacer {
         ObjectMapper mapper = new ObjectMapper(); // can reuse, share globally
         final JsonNode file = mapper.readValue(filePath.toFile(), JsonNode.class);
         if (file.has("baseUri")) {
-            content = content.replaceAll(baseUri, "http://localhost:" + port.toString() + "/api");
+            content = content.replaceAll(baseUri, "http://localhost:" + port.toString() + "/" + apiPath);
         }
 
         if (!oauthSchemes.isEmpty()) {
