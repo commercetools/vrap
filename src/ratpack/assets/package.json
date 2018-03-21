@@ -1,7 +1,7 @@
 {
   "name": "vrap",
   "scripts": {
-    "postinstall": "node_modules/.bin/bower install"
+    "postinstall": "node_modules/.bin/bower install --allow-root"
   },
   "repository": {
     "type": "git",
