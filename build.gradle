@@ -104,3 +104,7 @@ task buildDocker(type: Docker) {
 }
 
 buildDocker.dependsOn(shadowJar)
+
+shadowJar {
+    append 'plugin.properties'
+}
