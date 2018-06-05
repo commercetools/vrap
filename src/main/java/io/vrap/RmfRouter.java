@@ -78,9 +78,7 @@ class RmfRouter {
 
                     for (final Body bodyDeclaration : method.getBodies()) {
                         final Route route = new Route(resource, method);
-                        for( final String contentType: bodyDeclaration.getContentTypes()) {
-                            contentTypeHandlers.put(contentType, route);
-                        }
+                        contentTypeHandlers.put(bodyDeclaration.getContentType(), route);
                     }
                     methodHandlers.put(method, Handlers.chain(ctx2 ->
                             ctx2.byContent(byContentSpec -> contentTypeHandlers.entrySet()

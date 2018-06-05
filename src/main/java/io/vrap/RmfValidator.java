@@ -180,7 +180,7 @@ public class RmfValidator implements Service {
         final String statusCode = Integer.toString(receivedResponse.getStatusCode());
         final Optional<AnyType> responseTypeDecl = method.getResponses().stream().filter(response -> response.getStatusCode().equals(statusCode))
                 .flatMap(r -> r.getBodies().stream())
-                .filter(b -> b.getContentTypes().contains(contentType.getType()))
+                .filter(b -> b.getContentType().contains(contentType.getType()))
                 .map(TypedElement::getType)
                 .findFirst();
 
