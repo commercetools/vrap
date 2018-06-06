@@ -3,6 +3,8 @@ package io.vrap;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+import io.vrap.rmf.raml.model.RamlDiagnostic;
+import io.vrap.rmf.raml.model.RamlModelResult;
 import io.vrap.rmf.raml.model.modules.Api;
 import io.vrap.rmf.raml.model.resources.Method;
 import io.vrap.rmf.raml.model.resources.Resource;
@@ -141,7 +143,7 @@ public class RmfValidator implements Service {
         final Optional<AnyType> bodyTypeDeclaration = Optional.ofNullable(method.getBody(contentType)).map(TypedElement::getType);
 
         errors.addAll(bodyTypeDeclaration
-                .map(bodyTypeDecl -> validate(body.getText(), bodyTypeDecl, ValidationKind.body, "request"))
+                .map(bodyTypeDecl -> validateBody(body.getText(), bodyTypeDecl, ValidationKind.body, "request"))
                 .orElse(Collections.emptyList()));
 
         return wrapAndLogErrors(errors);
@@ -185,7 +187,7 @@ public class RmfValidator implements Service {
                 .findFirst();
 
         final List<ValidationError> errors = responseTypeDecl.map(typeDeclaration ->
-                validate(receivedResponse.getBody().getText(), typeDeclaration, ValidationKind.body, "response"))
+                validateBody(receivedResponse.getBody().getText(), typeDeclaration, ValidationKind.body, "response"))
                 .orElse(Collections.emptyList());
         final String bodyValue = receivedResponse.getBody().getText();
 
@@ -307,11 +309,32 @@ public class RmfValidator implements Service {
      * @param validationContext the validation context
      * @return list of validation errors
      */
-    private List<ValidationError> validate(final String payload, final AnyType typeDeclaration, final ValidationKind kind, final String validationContext) {
+    private List<ValidationError> validateBody(final String payload, final AnyType typeDeclaration, final ValidationKind kind, final String validationContext) {
         try {
             final Instance instance = InstanceHelper.parseJson(payload);
 
             final List<Diagnostic> validationResults = new InstanceValidator().validate(instance, typeDeclaration);
+            return validationResults.stream().map(r -> new ValidationError(kind, validationContext, r.getMessage())).collect(Collectors.toList());
+        } catch (final Exception e) {
+            return Collections.singletonList(new ValidationError(kind, validationContext, "Exception in validator:" + e.getMessage()));
+        }
+    }
+
+    /**
+     * This method is just a wrapper around the raml parsers {@link InstanceValidator#validate(Annotation)} method
+     * which catches any exception and converts it into a {@link ValidationError}.
+     *
+     * @param payload           the payload to validate
+     * @param typeDeclaration   the type declaration used to validate the payload
+     * @param kind              the validation kind
+     * @param validationContext the validation context
+     * @return list of validation errors
+     */
+    private List<ValidationError> validate(final String payload, final AnyType typeDeclaration, final ValidationKind kind, final String validationContext) {
+        try {
+            final RamlModelResult<Instance> result = InstanceHelper.parseAndValidate(payload, typeDeclaration);
+
+            final List<RamlDiagnostic> validationResults = result.getValidationResults();
             return validationResults.stream().map(r -> new ValidationError(kind, validationContext, r.getMessage())).collect(Collectors.toList());
         } catch (final Exception e) {
             return Collections.singletonList(new ValidationError(kind, validationContext, "Exception in validator:" + e.getMessage()));
