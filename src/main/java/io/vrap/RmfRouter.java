@@ -208,7 +208,6 @@ class RmfRouter {
             final boolean dryRun = ctx.get(VrapApp.VrapOptions.class).getDryRun();
             final Method method = ctx.get(Method.class);
             final Optional<RmfValidator.ValidationErrors> validationErrors = validator.validateRequest(ctx, body, method);
-
             ctx.next(Registry.of(registrySpec -> {
                 registrySpec.add(TypedData.class, body);
                 validationErrors.ifPresent(validationErrors1 -> registrySpec.add(RmfValidator.ValidationErrors.class, validationErrors1));
@@ -338,7 +337,8 @@ class RmfRouter {
                     RmfValidator.ValidationErrors errors = new RmfValidator.ValidationErrors(
                             requestValidationErrors.get().getErrors(),
                             receivedResponse.getStatusCode(),
-                            receivedResponse.getBody().getText());
+                            receivedResponse.getBody().getText(),
+                            ctx.get(TypedData.class).getText());
                     ctx.render(json(errors));
                     return;
                 }

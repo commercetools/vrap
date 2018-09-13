@@ -48,15 +48,20 @@ public class RmfValidator implements Service {
         private final Integer responseStatusCode;
         @JsonRawValue
         private final Object responseBody;
+        @JsonRawValue
+        private final Object requestBody;
 
         public ValidationErrors(final List<ValidationError> errors) {
-            this(errors, null, null);
+            this(errors, null, null, null);
         }
 
-        public ValidationErrors(final List<ValidationError> errors, final Integer responseStatusCode, final Object responseBody) {
+        public ValidationErrors(final List<ValidationError> errors, final Integer responseStatusCode, final Object responseBody) { this(errors, responseStatusCode, responseBody, null); }
+
+        public ValidationErrors(final List<ValidationError> errors, final Integer responseStatusCode, final Object responseBody, final Object requestBody) {
             this.errors = errors;
             this.responseStatusCode = responseStatusCode;
             this.responseBody = responseBody;
+            this.requestBody = requestBody;
         }
 
         public List<ValidationError> getErrors() {
@@ -71,12 +76,17 @@ public class RmfValidator implements Service {
             return responseBody;
         }
 
+        public Object getRequestBody() {
+            return requestBody;
+        }
+
         @Override
         public String toString() {
             return "ValidationErrors{" +
                     "errors=" + errors +
                     ", responseStatusCode=" + responseStatusCode +
                     ", responseBody=" + responseBody +
+                    ", requestBody=" + requestBody +
                     '}';
         }
     }
