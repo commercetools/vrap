@@ -334,11 +334,12 @@ class RmfRouter {
                 Integer statusCode = receivedResponse.getStatusCode();
                 if (statusCode < 400 || statusCode > 499) {
                     ctx.getResponse().status(VrapStatus.INVALID_REQUEST);
+                    TypedData requestBody = ctx.get(TypedData.class);
                     RmfValidator.ValidationErrors errors = new RmfValidator.ValidationErrors(
                             requestValidationErrors.get().getErrors(),
                             receivedResponse.getStatusCode(),
                             receivedResponse.getBody().getText(),
-                            ctx.get(TypedData.class).getText());
+                            requestBody != null ? requestBody : "");
                     ctx.render(json(errors));
                     return;
                 }
