@@ -205,12 +205,14 @@ class RmfRouter {
 
         private void validateRequest(final Context ctx, final TypedData body) throws Exception {
             final RmfValidator validator = ctx.get(RmfValidator.class);
-            final boolean dryRun = ctx.get(VrapApp.VrapOptions.class).getDryRun();
             final Method method = ctx.get(Method.class);
             final Optional<RmfValidator.ValidationErrors> validationErrors = validator.validateRequest(ctx, body, method);
             ctx.next(Registry.of(registrySpec -> {
                 registrySpec.add(TypedData.class, body);
-                validationErrors.ifPresent(validationErrors1 -> registrySpec.add(RmfValidator.ValidationErrors.class, validationErrors1));
+                validationErrors.ifPresent(validationErrors1 -> {
+                    final RequestBody requestBody = new RequestBody(body.getText());
+                    registrySpec.add(requestBody).add(RmfValidator.ValidationErrors.class, validationErrors1);
+                });
             }));
         }
     }
@@ -237,6 +239,17 @@ class RmfRouter {
         }
     }
 
+    private static class RequestBody {
+        private String text;
+
+        public RequestBody(String body) {
+            this.text = body;
+        }
+
+        public String getText() {
+            return text;
+        }
+    }
 
     /**
      * This handler proxies the request {@link Context#getRequest()} to the base uri and passes
@@ -334,12 +347,12 @@ class RmfRouter {
                 Integer statusCode = receivedResponse.getStatusCode();
                 if (statusCode < 400 || statusCode > 499) {
                     ctx.getResponse().status(VrapStatus.INVALID_REQUEST);
-                    TypedData requestBody = ctx.get(TypedData.class);
+                    RequestBody requestBody = ctx.get(RequestBody.class);
                     RmfValidator.ValidationErrors errors = new RmfValidator.ValidationErrors(
                             requestValidationErrors.get().getErrors(),
                             receivedResponse.getStatusCode(),
                             receivedResponse.getBody().getText(),
-                            requestBody != null ? requestBody : "");
+                            requestBody.getText());
                     ctx.render(json(errors));
                     return;
                 }
