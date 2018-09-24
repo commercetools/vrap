@@ -16,7 +16,7 @@
     "tests"
   ],
   "dependencies": {
-    "api-console": "mulesoft/api-console#^4.2.1",
+    "api-console": "mulesoft/api-console#4.2.2",
     "raml-1-parser-browser": "raml-org/raml-js-parser-2#^1.1.40",
     "raml-json-enhance": "advanced-rest-client/raml-json-enhance#^0.2.8"
   }
