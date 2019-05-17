@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/vrapio/vrap.svg?branch=master)](https://travis-ci.org/vrapio/vrap)
+[![Build Status](https://travis-ci.com/vrapio/vrap.svg?branch=master)](https://travis-ci.com/vrapio/vrap)
 
 # VRAP
  
