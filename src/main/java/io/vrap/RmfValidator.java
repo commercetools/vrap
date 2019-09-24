@@ -150,8 +150,10 @@ public class RmfValidator implements Service {
         );
         final Optional<AnyType> bodyTypeDeclaration = Optional.ofNullable(method.getBody(contentType)).map(TypedElement::getType);
 
+        final VrapApp.VrapOptions options = context.get(VrapApp.VrapOptions.class);
+
         errors.addAll(bodyTypeDeclaration
-                .map(bodyTypeDecl -> validateBody(body.getText(), bodyTypeDecl, ValidationKind.body, "request"))
+                .map(bodyTypeDecl -> validateBody(body.getText(), bodyTypeDecl, ValidationKind.body, "request", options.getStrictValidation()))
                 .orElse(Collections.emptyList()));
 
         return wrapAndLogErrors(errors);
@@ -196,8 +198,10 @@ public class RmfValidator implements Service {
                 .map(TypedElement::getType)
                 .findFirst();
 
+        final VrapApp.VrapOptions options = ctx.get(VrapApp.VrapOptions.class);
+
         final List<ValidationError> errors = responseTypeDecl.map(typeDeclaration ->
-                validateBody(receivedResponse.getBody().getText(), typeDeclaration, ValidationKind.body, "response"))
+                validateBody(receivedResponse.getBody().getText(), typeDeclaration, ValidationKind.body, "response", options.getStrictValidation()))
                 .orElse(Collections.emptyList());
 
         if (errors.isEmpty()) {
@@ -318,11 +322,11 @@ public class RmfValidator implements Service {
      * @param validationContext the validation context
      * @return list of validation errors
      */
-    private List<ValidationError> validateBody(final String payload, final AnyType typeDeclaration, final ValidationKind kind, final String validationContext) {
+    private List<ValidationError> validateBody(final String payload, final AnyType typeDeclaration, final ValidationKind kind, final String validationContext, final Boolean strictValidation) {
         try {
             final Instance instance = InstanceHelper.parseJson(payload);
 
-            final List<Diagnostic> validationResults = new InstanceValidator().validate(instance, typeDeclaration);
+            final List<Diagnostic> validationResults = new InstanceValidator().validate(instance, typeDeclaration, strictValidation);
             return validationResults.stream().map(r -> new ValidationError(kind, validationContext, r.getMessage())).collect(Collectors.toList());
         } catch (final Exception e) {
             return Collections.singletonList(new ValidationError(kind, validationContext, "Exception in validator:" + e.getMessage()));

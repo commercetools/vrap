@@ -114,6 +114,7 @@ public class VrapApp {
         private Boolean dryRun;
         private Boolean checkOnly;
         private Boolean rmfCheckOnly;
+        private Boolean strictValidation;
 
         public VrapOptions(String[] args)
         {
@@ -143,6 +144,7 @@ public class VrapApp {
             );
             sslVerificationMode = parseSslMode(cmd.getOptionValue(getSSLVerificationOption().getOpt(), SSLVerificationMode.normal.name()));
             clientConnectionPoolSize = NumberUtils.toInt(cmd.getOptionValue(getClientConnectionPoolSizeOption().getOpt()), 10);
+            strictValidation = cmd.hasOption(getStrictOption().getOpt());
 
             if (cmd.hasOption(getHelpOption().getOpt())) {
                 printHelp();
@@ -169,6 +171,7 @@ public class VrapApp {
             options.addOption(getDryRunOption());
             options.addOption(getCheckOnlyOption());
             options.addOption(getRmfCheckOnlyOption());
+            options.addOption(getStrictOption());
             return options;
         }
 
@@ -187,6 +190,16 @@ public class VrapApp {
             return Option.builder("rc")
                     .longOpt("rmfCheckOnly")
                     .desc("Check given raml file for errors using RMF")
+                    .hasArg(false)
+                    .required(false)
+                    .build();
+        }
+
+        private Option getStrictOption()
+        {
+            return Option.builder("st")
+                    .longOpt("strict")
+                    .desc("Validate responses in strict mode")
                     .hasArg(false)
                     .required(false)
                     .build();
@@ -339,5 +352,6 @@ public class VrapApp {
 
         public Boolean getRmfCheckOnly() { return rmfCheckOnly; }
 
+        public Boolean getStrictValidation() { return strictValidation; }
     }
 }
