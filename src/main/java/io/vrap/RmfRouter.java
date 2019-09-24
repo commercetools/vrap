@@ -302,6 +302,7 @@ class RmfRouter {
                 }
                 spec.getBody().buffer(body.getBuffer());
                 spec.getHeaders().copy(request.getHeaders());
+                spec.getHeaders().remove("Host");
                 spec.method(request.getMethod());
             };
         }
