@@ -55,7 +55,7 @@ public class VrapApp {
             System.exit(0);
         }
 
-        final RamlModelRepository ramlRepo = RamlModelRepository.of(filePath);
+//        final RamlModelRepository ramlRepo = RamlModelRepository.of(filePath);
         final RmfModelRepository rmfRepo = RmfModelRepository.of(filePath);
 
         RatpackServer.start(server -> server
@@ -65,7 +65,7 @@ public class VrapApp {
                 })
                 .registry(Guice.registry(b -> b.module(HandlebarsModule.class)
                         .bindInstance(options)
-                        .bindInstance(ramlRepo)
+                     //   .bindInstance(ramlRepo)
                         .bindInstance(rmfRepo)
                         .bindInstance(HttpClient.class, HttpClient.of(httpClientSpec -> httpClientSpec.poolSize(options.getClientConnectionPoolSize())))
                         .bind(Validator.class)
@@ -76,23 +76,23 @@ public class VrapApp {
                                 chain1.all(ctx -> ctx.insert(
                                         new ApiConsoleHandler("console4", filePath, API_RMF),
                                         Handlers.files(ctx.getServerConfig(), Action.noop()))))
-                        .prefix("console4", chain1 ->
-                                chain1.all(ctx -> ctx.insert(
-                                        new ApiConsoleHandler("console4", filePath, API_RAML),
-                                        Handlers.files(ctx.getServerConfig(), Action.noop()))))
-                        .prefix("api-console", chain1 ->
-                                chain1.all(ctx -> ctx.insert(
-                                        new ApiConsoleHandler("api-console", filePath, API_RAML),
-                                        new WebJarHandler("api-console", "3.0.4"),
-                                        Handlers.files(ctx.getServerConfig(), Action.noop()))))
-                        .prefix(API_URI, chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
+//                        .prefix("console4", chain1 ->
+//                                chain1.all(ctx -> ctx.insert(
+//                                        new ApiConsoleHandler("console4", filePath, API_RAML),
+//                                        Handlers.files(ctx.getServerConfig(), Action.noop()))))
+//                        .prefix("api-console", chain1 ->
+//                                chain1.all(ctx -> ctx.insert(
+//                                        new ApiConsoleHandler("api-console", filePath, API_RAML),
+//                                        new WebJarHandler("api-console", "3.0.4"),
+//                                        Handlers.files(ctx.getServerConfig(), Action.noop()))))
+                 //       .prefix(API_URI, chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
                         .prefix(RMF_URI, chain1 -> chain1.all(new RmfRouter(rmfRepo.getApi()).getRoutes()))
-                        .prefix("auth", chain1 -> chain1.all(new AuthRouter(ramlRepo.getApi()).getRoutes()))
-                        .prefix(API_RAML, chain1 ->
-                                chain1.all(ctx -> ctx.insert(
-                                        new VrapExtensionHandler(API_URI),
-                                        new RamlFilesHandler(contentModifier, API_RAML, API_URI).getHandler()))
-                        )
+                        .prefix("auth", chain1 -> chain1.all(new AuthRouter(rmfRepo.getApi()).getRoutes()))
+//                        .prefix(API_RAML, chain1 ->
+//                                chain1.all(ctx -> ctx.insert(
+//                                        new VrapExtensionHandler(API_URI),
+//                                        new RamlFilesHandler(contentModifier, API_RAML, API_URI).getHandler()))
+//                        )
                         .prefix(API_RMF, chain1 ->
                                 chain1.all(ctx -> ctx.insert(
                                         new VrapExtensionHandler(RMF_URI),

@@ -2,8 +2,9 @@ package io.vrap;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
-import org.raml.v2.api.model.v10.api.Api;
-import org.raml.v2.api.model.v10.security.SecurityScheme;
+import io.vrap.rmf.raml.model.modules.Api;
+import io.vrap.rmf.raml.model.security.OAuth20Settings;
+import io.vrap.rmf.raml.model.security.SecurityScheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.form.Form;
@@ -30,7 +31,7 @@ public class AuthRouter {
     public AuthRouter(final Api api) throws Exception {
 
         List<SecurityScheme> oauthSchemes = api != null ?
-                api.securitySchemes().stream().filter(securityScheme -> securityScheme.type().equals("OAuth 2.0")).collect(Collectors.toList()) :
+                api.getSecuritySchemes().stream().filter(securityScheme -> securityScheme.getType().getName().equals("OAuth 2.0")).collect(Collectors.toList()) :
                 Lists.newArrayList();
 
         routes = Handlers.chain(createRoutes(oauthSchemes));
@@ -45,8 +46,8 @@ public class AuthRouter {
 
         for (final SecurityScheme scheme : schemes) {
             routes.add(Handlers.prefix(
-                    scheme.name(),
-                    new Route(scheme.settings().accessTokenUri().value())
+                    scheme.getType().getName(),
+                    new Route(((OAuth20Settings) scheme.getSettings()).getAccessTokenUri())
             ));
         }
 
