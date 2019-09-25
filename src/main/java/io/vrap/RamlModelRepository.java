@@ -22,7 +22,7 @@ class RamlModelRepository implements Service {
     private final Path filePath;
     private final RamlModelResult ramlModelResult;
 
-    RamlModelRepository(final Path filePath) {
+    RamlModelRepository(final Path filePath, final Boolean strict) {
         this.filePath = filePath;
         this.ramlModelResult = new RamlModelBuilder().buildApi(filePath.toFile());
 
@@ -30,7 +30,9 @@ class RamlModelRepository implements Service {
             for (ValidationResult validationResult : ramlModelResult.getValidationResults()) {
                 LOG.error("{}", validationResult.toString());
             }
-            System.exit(1);
+            if (strict) {
+                System.exit(1);
+            }
         }
     }
 
@@ -73,6 +75,10 @@ class RamlModelRepository implements Service {
     }
 
     public static RamlModelRepository of(final Path filePath) {
-        return new RamlModelRepository(filePath);
+        return of(filePath, false);
+    }
+
+    public static RamlModelRepository of(final Path filePath, final Boolean strict) {
+        return new RamlModelRepository(filePath, strict);
     }
 }
