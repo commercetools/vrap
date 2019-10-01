@@ -43,6 +43,9 @@ class RmfModelRepository implements Service {
             for (RamlDiagnostic validationResult : ramlModelResult.getValidationResults()) {
                 LOG.error("{}", validationResult.toString());
             }
+            if (strict) {
+                System.exit(1);
+            }
         }
         this.ramlModelResult = ramlModelResult;
     }
