@@ -3,15 +3,15 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath "io.ratpack:ratpack-gradle:1.5.4"
-        classpath "com.github.jengelman.gradle.plugins:shadow:1.2.3"
-        classpath "se.transmode.gradle:gradle-docker:1.2"
+        classpath "io.ratpack:ratpack-gradle:1.7.5"
+        classpath "com.github.jengelman.gradle.plugins:shadow:5.2.0"
+//        classpath "se.transmode.gradle:gradle-docker:1.2"
     }
 }
 
-plugins {
-    id "com.moowork.node" version "1.2.0"
-}
+//plugins {
+//    id "com.moowork.node" version "1.2.0"
+//}
 
 ext {
     versions = [
@@ -39,23 +39,23 @@ repositories {
     jcenter()
 }
 
-node {
-    // Set the work directory for NPM
-    npmWorkDir = file("${project.buildDir}/npm")
-
-    // Set the work directory for Yarn
-    yarnWorkDir = file("${project.buildDir}/yarn")
-
-    // Set the work directory where node_modules should be located
-    nodeModulesDir = file("${project.projectDir}/src/ratpack/assets")
-}
+//node {
+//    // Set the work directory for NPM
+//    npmWorkDir = file("${project.buildDir}/npm")
+//
+//    // Set the work directory for Yarn
+//    yarnWorkDir = file("${project.buildDir}/yarn")
+//
+//    // Set the work directory where node_modules should be located
+//    nodeModulesDir = file("${project.projectDir}/src/ratpack/assets")
+//}
 
 dependencies {
     testCompile 'com.tngtech.java:junit-dataprovider:1.12.0'
 
     compile "io.vrap.rmf:raml-model:${versions.rmf}"
 
-    compile 'org.webjars.npm:api-console:3.0.4'
+//    compile 'org.webjars.npm:api-console:3.0.4'
 
     compile 'commons-cli:commons-cli:1.4'
     compile 'org.raml:raml-parser-2:1.0.15'
@@ -80,30 +80,30 @@ run {
 }
 
 
-task copyConsolePatch(dependsOn: yarn_install, type: Copy) {
-    from "src/ratpack/assets/oauth2-authorization.html"
-    into "src/ratpack/assets/bower_components/oauth-authorization"
-}
+//task copyConsolePatch(dependsOn: yarn_install, type: Copy) {
+//    from "src/ratpack/assets/oauth2-authorization.html"
+//    into "src/ratpack/assets/bower_components/oauth-authorization"
+//}
 
-processResources.dependsOn(copyConsolePatch)
+//processResources.dependsOn(copyConsolePatch)
 
-task buildDocker(type: Docker) {
-    baseImage = 'openjdk:8-jre-alpine'
-    maintainer = 'Matthias Köster "matthias.koester@gmail.com"'
-    tag = 'vrap'
-    addFile {
-        from shadowJar
-        rename {
-            'vrap.jar'
-        }
-    }
+//task buildDocker(type: Docker) {
+//    baseImage = 'openjdk:8-jre-alpine'
+//    maintainer = 'Matthias Köster "matthias.koester@gmail.com"'
+//    tag = 'vrap'
+//    addFile {
+//        from shadowJar
+//        rename {
+//            'vrap.jar'
+//        }
+//    }
+//
+//    exposePort(5050)
+//
+//    entryPoint(["java", "-jar", "/vrap.jar"])
+//}
 
-    exposePort(5050)
-
-    entryPoint(["java", "-jar", "/vrap.jar"])
-}
-
-buildDocker.dependsOn(shadowJar)
+//buildDocker.dependsOn(shadowJar)
 
 shadowJar {
     append 'plugin.properties'
