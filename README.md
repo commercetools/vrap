@@ -46,8 +46,3 @@ Vrap includes a small web interface for browsing the API definition.
 
 - API browser [http://localhost:5050/api-raml/]()
     - with resolved includes [http://localhost:5050/api-raml/?include]()
-
-And an API console which uses Vrap as proxy
-
-- API console [http://localhost:5050/api-console/]()
-    - with resolved includes [http://localhost:5050/api-console/?include]()

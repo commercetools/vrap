@@ -72,19 +72,6 @@ public class VrapApp {
                         .bind(RmfValidator.class)
                 ))
                 .handlers(chain -> chain.get(ctx -> ctx.render(handlebarsTemplate("index.html")))
-                        .prefix("rmf-console4", chain1 ->
-                                chain1.all(ctx -> ctx.insert(
-                                        new ApiConsoleHandler("console4", filePath, API_RMF),
-                                        Handlers.files(ctx.getServerConfig(), Action.noop()))))
-                        .prefix("console4", chain1 ->
-                                chain1.all(ctx -> ctx.insert(
-                                        new ApiConsoleHandler("console4", filePath, API_RAML),
-                                        Handlers.files(ctx.getServerConfig(), Action.noop()))))
-                        .prefix("api-console", chain1 ->
-                                chain1.all(ctx -> ctx.insert(
-                                        new ApiConsoleHandler("api-console", filePath, API_RAML),
-                                        new WebJarHandler("api-console", "3.0.4"),
-                                        Handlers.files(ctx.getServerConfig(), Action.noop()))))
                         .prefix(API_URI, chain1 -> chain1.all(new RamlRouter(ramlRepo.getApi()).getRoutes()))
                         .prefix(RMF_URI, chain1 -> chain1.all(new RmfRouter(rmfRepo.getApi()).getRoutes()))
                         .prefix("auth", chain1 -> chain1.all(new AuthRouter(rmfRepo.getApi()).getRoutes()))
