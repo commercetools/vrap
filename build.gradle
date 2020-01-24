@@ -35,22 +35,22 @@ repositories {
 }
 
 dependencies {
-    testCompile 'com.tngtech.java:junit-dataprovider:1.12.0'
+    testImplementation 'com.tngtech.java:junit-dataprovider:1.12.0'
 
-    compile "io.vrap.rmf:raml-model:${versions.rmf}"
+    implementation "io.vrap.rmf:raml-model:${versions.rmf}"
 
-    compile 'commons-cli:commons-cli:1.4'
-    compile 'org.raml:raml-parser-2:1.0.15'
-    compile ratpack.dependency('handlebars')
+    implementation 'commons-cli:commons-cli:1.4'
+    implementation 'org.raml:raml-parser-2:1.0.15'
+    implementation ratpack.dependency('handlebars')
 
-    compile 'org.assertj:assertj-core:3.6.2'
+    implementation 'org.assertj:assertj-core:3.6.2'
 
-    runtime "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    runtime "org.apache.logging.log4j:log4j-api:${versions.log4j}"
-    runtime "org.apache.logging.log4j:log4j-core:${versions.log4j}"
-    runtime 'com.lmax:disruptor:3.3.2'
+    runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
+    runtimeOnly "org.apache.logging.log4j:log4j-api:${versions.log4j}"
+    runtimeOnly "org.apache.logging.log4j:log4j-core:${versions.log4j}"
+    runtimeOnly 'com.lmax:disruptor:3.3.2'
 
-    testCompile "org.spockframework:spock-core:${versions.spock}"
+    testImplementation "org.spockframework:spock-core:${versions.spock}"
 }
 
 mainClassName = "io.vrap.VrapApp"
