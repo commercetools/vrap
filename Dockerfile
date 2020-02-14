@@ -1,10 +1,10 @@
 FROM openjdk:8 as builder
 
-RUN curl -sL https://deb.nodesource.com/setup_9.x | bash - \
-    && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
-    && apt-get update && apt-get install -y nodejs yarn \
-    && node -v && npm -v && yarn -v
+#RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - \
+#    && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
+#    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
+#    && apt-get update && apt-get install -y nodejs yarn \
+#    && node -v && npm -v && yarn -v
 
 WORKDIR /vrap
 COPY . /vrap
