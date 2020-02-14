@@ -26,6 +26,7 @@ import ratpack.util.MultiValueMap;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -259,7 +260,9 @@ public class RmfValidator implements Service {
         for (final String queryParamName : queryParams.keySet()) {
             String declarationMatch = queryParamToDeclaration.keySet().stream().filter(s -> {
                 final String pattern = s.startsWith("/") && s.endsWith("/") ? s.substring(1, s.length() - 1) : s;
-                return queryParamName.matches(pattern);
+                Pattern p = Pattern.compile(pattern);
+                Matcher matcher = p.matcher(queryParamName);
+                return matcher.find();
             }).findFirst().orElse(null);
             if (queryParamToDeclaration.containsKey(declarationMatch)) {
                 final QueryParameter queryParamDeclaration = queryParamToDeclaration.get(declarationMatch);

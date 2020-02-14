@@ -9,6 +9,7 @@ import io.vrap.rmf.raml.model.modules.Api;
 import io.vrap.rmf.raml.model.resources.Method;
 import io.vrap.rmf.raml.model.resources.Resource;
 import io.vrap.rmf.raml.model.responses.Body;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.func.Action;
@@ -280,7 +281,7 @@ class RmfRouter {
             final String query = request.getQuery();
             final String boundPath = request.getPath().replaceAll("^rmf/", "") + (!query.isEmpty() ? "?" + query : "");
 
-            final String ramlBaseUri = api.getBaseUri().getTemplate();
+            final String ramlBaseUri = StringUtils.stripEnd(api.getBaseUri().getTemplate(), "/");
             final String ramlBaseUriPath = URI.create(ramlBaseUri.replace("{", "%7B").replace("}", "%7D")).getPath().replace("%7B", "{").replace("%7D", "}");
             final String ramlBaseUriHost = ramlBaseUri.replace(ramlBaseUriPath, "");
 
