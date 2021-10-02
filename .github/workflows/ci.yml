@@ -1,0 +1,52 @@
+on:
+  - push
+  - workflow_dispatch
+  - pull_request
+
+name: CI
+
+jobs:
+  test:
+    name: Integration tests
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+
+      - name: Retrieve branch name
+        id: branch_name
+        run: |
+          echo ::set-output name=SOURCE_NAME::${GITHUB_REF#refs/*/}
+          echo ::set-output name=SOURCE_BRANCH::${GITHUB_REF#refs/heads/}
+          echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
+
+#      - name: Fix code style
+#        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+#        run: ./gradlew spotlessApply
+#
+#      - uses: stefanzweifel/git-auto-commit-action@v4
+#        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+#        with:
+#            commit_message: "spotless: Fix code style"
+#            commit_user_name: Auto Mation
+#            commit_user_email: automation@commercetools.com
+#            commit_author: Auto Mation <automation@commercetools.com>
+
+      - name: Run integration tests
+        run: ./gradlew check
+
+#      - name: Collect code coverage
+#        run: ./gradlew codeCoverageReport
+#
+#      - name: Send code coverage report to Codecov.io
+#        run: bash <(curl -s https://codecov.io/bash) || true
+#        env:
+#          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
