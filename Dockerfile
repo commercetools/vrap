@@ -1,4 +1,4 @@
-FROM openjdk:8 as builder
+FROM openjdk:18 as builder
 
 #RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - \
 #    && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
